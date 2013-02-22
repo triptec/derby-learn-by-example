@@ -39,7 +39,11 @@ Everything seems to be working! It should look like this (IMAGE 01)
 
 02 - Clean out
 
-Okay so we start in "./lib/app/index.js" and comment out the existing routes and controller function and add our own code. Change
+Okay so lets start with branching
+
+$git checkout -b 02-clean-app
+
+So we start in "./lib/app/index.js" and comment out the existing routes and controller function and add our own code. Change
 
 var derby = require('derby')
   , app = derby.createApp(module)
@@ -259,6 +263,87 @@ Lets change that to:
 
 
 Okay, so now it should look like this (IMAGE 022)
+
+Clean and nice! Let's commit 
+
+$git commit -am "cleaned out"
+
+$git checkout master
+
+$git merge 02-clean-app
+
+Now let us start with models but first
+
+$git checkout -b 03-add-model
+
+So we're in a new branch and lets head over to "./lib/app/index.js" change this:
+
+var derby = require('derby')
+  , app = derby.createApp(module)
+  , get = app.get
+  , view = app.view
+  , ready = app.ready
+  , start = +new Date()
+
+derby.use(require('../../ui'))
+
+
+// ROUTES //
+
+get('/', function(page, model, params) {
+    page.render();
+});
+
+To (comments omitted):
+
+var derby = require('derby')
+  , app = derby.createApp(module)
+  , get = app.get
+  , view = app.view
+  , ready = app.ready
+  , start = +new Date()
+
+derby.use(require('../../ui'))
+
+
+// ROUTES //
+
+get('/', function(page, model, params) {
+
+    model.subscribe('snippster.data', function(err, data){
+
+        data.setNull('snippets',[
+            {
+                title: "Snippet One",
+                description: "Desc of snippet one",
+                source: "print x;"
+            },
+            {
+                title: "Snippet Two",
+                description: "Desc of snippet two",
+                source: "print y;"
+            },
+            {
+                title: "Snippet Three",
+                description: "Desc of snippet three",
+                source: "print z;"
+            }
+        ]);
+
+        model.ref('_snippets', data.path() +".snippets");
+        console.log(model.get('_snippets'));
+        page.render();
+    });
+
+});
+
+
+
+
+
+
+
+
 
 
 

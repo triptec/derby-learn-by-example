@@ -2,3 +2,4 @@
 public/gen
 *.swp
 node_modules/
+.idea

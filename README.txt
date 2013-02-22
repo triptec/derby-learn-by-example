@@ -33,3 +33,7 @@ $git checkout master
 
 $git merge 01-edit-gitignore
 
+$node server.js
+
+Everything seems to be working!
+

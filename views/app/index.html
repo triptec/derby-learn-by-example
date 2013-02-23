@@ -1,18 +1,6 @@
-<!--
-  Derby templates are similar to Handlebars, except that they are first
-  parsed as HTML, and there are a few extensions to make them work directly
-  with models. A single HTML template defines the HTML output, the event
-  handlers that update the model after user interaction, and the event handlers
-  that update the DOM when the model changes.
-
-  As in Handlebars, double curly braces output a value literally. Derby
-  templates add single curly braces, which output a value and set up
-  model <- -> view bindings for that object.
-
-  Elements that end in colon define template names. Pre-defined templates
-  are capitalized by convention, but template names are case-insensitive.
-  Pre-defined templates are automatically included when the page is rendered.
--->
+<import: src="./new">
+<import: src="./view">
+<import: src="./edit">
 
 <Title:>
   Snippster
@@ -26,20 +14,22 @@
   <strong>Snippets:</strong>
   {#each _snippets}
     <div>
-      <div>Title:{title}</div>
+      <div>Title:{.title}</div>
       <div>Description:</div>
-      <div>{description}</div>
+      <div>{.description}</div>
       <div>source:</div>
-      <div>{source}</div>
+      <div>{.source}</div>
     </div>
   {/}
 
-  <form id=newSnippet x-bind="submit: addSnippet">
+  New Snippet:
+  <form x-bind="submit: saveSnippet">
     Title:<br>
-    <input id=title value={_newSnippet.title}><br>
+    <input value={_snippet.title}><br>
     Description:<br>
-    <input id=description value={_newSnippet.description}><br>
+    <input value={_snippet.description}><br>
     Source:<br>
-    <input id=source value={_newSnippet.source}><br>
-    <input id=add-button type=submit value=Add>
+    <input value={_snippet.source}><br>
+    <input id=add-button type=submit value=Save>
   </form>
+

@@ -369,11 +369,11 @@ Make it look like this(commenst omitted):
       <strong>Snippets:</strong>
       {#each _snippets}
         <div>
-          <div>Title:{title}</div>
+          <div>Title:{.title}</div>
           <div>Description:</div>
-          <div>{description}</div>
+          <div>{.description}</div>
           <div>source:</div>
-          <div>{source}</div>
+          <div>{.source}</div>
         </div>
       {/}
 
@@ -507,11 +507,11 @@ Now open "./views/app/index.html" it looks like this:
       <strong>Snippets:</strong>
       {#each _snippets}
         <div>
-          <div>Title:{title}</div>
+          <div>Title:{.title}</div>
           <div>Description:</div>
-          <div>{description}</div>
+          <div>{.description}</div>
           <div>source:</div>
-          <div>{source}</div>
+          <div>{.source}</div>
         </div>
       {/}
       
@@ -532,11 +532,11 @@ So it should look like:
       <strong>Snippets:</strong>
       {#each _snippets}
         <div>
-          <div>Title:{title}</div>
+          <div>Title:{.title}</div>
           <div>Description:</div>
-          <div>{description}</div>
+          <div>{.description}</div>
           <div>source:</div>
-          <div>{source}</div>
+          <div>{.source}</div>
         </div>
       {/}
       <button x-bind="click: addSnippet">Add</button>
@@ -688,11 +688,11 @@ Save and open the file "./views/app.index.html", it should look like this(commen
       <strong>Snippets:</strong>
       {#each _snippets}
         <div>
-          <div>Title:{title}</div>
+          <div>Title:{.title}</div>
           <div>Description:</div>
-          <div>{description}</div>
+          <div>{.description}</div>
           <div>source:</div>
-          <div>{source}</div>
+          <div>{.source}</div>
         </div>
       {/}
       <button x-bind="click: addSnippet">Add</button>
@@ -711,11 +711,11 @@ Lets dropp the button and add a form for a new snippet and end up with something
       <strong>Snippets:</strong>
       {#each _snippets}
         <div>
-          <div>Title:{title}</div>
+          <div>Title:{.title}</div>
           <div>Description:</div>
-          <div>{description}</div>
+          <div>{.description}</div>
           <div>source:</div>
-          <div>{source}</div>
+          <div>{.source}</div>
         </div>
       {/}
     
@@ -894,3 +894,324 @@ Awesome! =), save, commit and merge
     $git commit -am "added functionality to add our own snippets"
     $git checkout master
     $git merge 04-dom-event-binding
+    
+05 - Routes
+-----------
+
+Okay routes, it would be nice. We already have one to index, now I would like a view route to look at a single snippet.
+
+So lets start with "./lib/app/index.js", it looks like this(comments omitted):
+
+    var derby = require('derby')
+      , app = derby.createApp(module)
+      , get = app.get
+      , view = app.view
+      , ready = app.ready
+      , start = +new Date()
+    
+    derby.use(require('../../ui'))
+    
+    
+    // ROUTES //
+    
+    get('/', function(page, model, params) {
+    
+        model.subscribe('snippster.data', function(err, data){
+    
+            data.setNull('snippets',[
+                {
+                    title: "Snippet One",
+                    description: "Desc of snippet one",
+                    source: "print x;"
+                },
+                {
+                    title: "Snippet Two",
+                    description: "Desc of snippet two",
+                    source: "print y;"
+                },
+                {
+                    title: "Snippet Three",
+                    description: "Desc of snippet three",
+                    source: "print z;"
+                }
+            ]);
+    
+            model.set('_newSnippet',{
+                            title: "title",
+                            description: "description",
+                            source: "source"
+                        });
+    
+            model.ref('_snippets', data.path() +".snippets");
+            console.log(model.get('_snippets'));
+            page.render();
+        });
+    
+    });
+    
+    ready(function(model) {
+        this.addSnippet = function(e, el, next){
+            newSnippet = model.get("_newSnippet");
+    
+            if(newSnippet.title && newSnippet.description && newSnippet.source){
+                model.push('_snippets', newSnippet);
+                model.set('_newSnippet',{
+                                    title: "title",
+                                    description: "description",
+                                    source: "source"
+                                });
+            }
+        };
+    });
+    
+Lets add the view route after the index route:
+
+    get('/view/:snippetId', function(page, model, params){
+    
+        model.subscribe('snippster.data.snippets.' + params.snippetId, function(err, data){
+            model.ref('_snippet', data);
+            console.log(model.get('_snippet'));
+            page.render();
+        });
+    });
+    
+    
+So this is what's going on:
+
+1. When the route /view/:snippetId is called aka someone tried to access /view/1 or /view/foo this route will be called. The part after /view/ goes into params.snippetId so in the two cases /view/1 and /view/foo would result in params.snippetId == "1" and params.snippetId == "foo" respectively.
+2. It subscribes to the requested snippet, this might be a little hard to understand without reading the docs but when we create a array a model the path to the items will be `collection.<index>` so in our case there will be a `snippster.data.snippets.0` and `snippster.data.snippets.1` etc. 
+3. It refereces the snippet and logs the snippet.
+4. Finishes with rendering the page.
+
+Start your server and goto http://localhost:3000 first to populate the snippets and then to http://localhost:3000/view/1
+
+If you look in the servers terminal somewhere you should see somthing like this:
+
+    { title: 'Snippet Two',
+      description: 'Desc of snippet two',
+      source: 'print y;'}
+    
+Though if we try http://localhost:3000/view/foobar you will only see undefined in the console that's because there isn't any `snippster.data.snippets.foobar` so first lets only allow numbers in the route, change:
+
+    get('/view/:snippetId', function(page, model, params){
+    
+to
+
+    get('/view/:snippetId([0-9]+)', function(page, model, params){
+    
+That will make sure it's only numbers and atleast one number, otherwise the user will get a 404
+
+But what if the number requested doens't exist? Well then lets just serv them with a 404 in that case aswell. Here's the new route
+
+    get('/view/:snippetId([0-9]+)', function(page, model, params){
+        model.subscribe('snippster.data.snippets.' + params.snippetId, function(err, data){
+            model.ref('_snippet', data);
+            if(!model.get('_snippet'))
+                throw '404: ' + params.url
+            console.log(model.get('_snippet'));
+            page.render();
+        });
+    });
+    
+So now your "./lib/app/index.js" should look something like this(comments omitted):
+
+    var derby = require('derby')
+      , app = derby.createApp(module)
+      , get = app.get
+      , view = app.view
+      , ready = app.ready
+      , start = +new Date()
+    
+    derby.use(require('../../ui'))
+    
+    
+    // ROUTES //
+    
+    
+    get('/', function(page, model, params) {
+    
+        model.subscribe('snippster.data', function(err, data){
+    
+            data.setNull('snippets',[
+                {
+                    title: "Snippet One",
+                    description: "Desc of snippet one",
+                    source: "print x;"
+    
+                },
+                {
+                    title: "Snippet Two",
+                    description: "Desc of snippet two",
+                    source: "print y;"
+                },
+                {
+                    title: "Snippet Three",
+                    description: "Desc of snippet three",
+                    source: "print z;"
+                }
+            ]);
+    
+            model.set('_snippet',{
+                            title: "title",
+                            description: "description",
+                            source: "source"
+                        });
+    
+            model.ref('_snippets', data.path() +".snippets");
+            page.render();
+        });
+    
+    });
+    
+    
+    get('/view/:snippetId([0-9]+)', function(page, model, params){
+        model.subscribe('snippster.data.snippets.' + params.snippetId, function(err, data){
+            model.ref('_snippet', data);
+            if(!model.get('_snippet'))
+                throw '404: ' + params.url
+            console.log(model.get('_snippet'));
+            page.render();
+        });
+    });
+
+Start your server and goto http://localhost:3000/view/1, now you should see this (IMAGE 051), the snippet isn't created yet. Now goto http://localhost:3000 and then goto http://localhost:3000/view/1 and now you should see this (IMAGE 052).
+
+Lets get a view to go with this new shiny route
+
+Create a new file "./views/app/view.html" and paste this code into it:
+
+    <Body:>
+      <strong>Snippet:</strong>
+      <div>
+        <div>Title:{_snippet.title}</div>
+        <div>Description:</div>
+        <div>{_snippet.description}</div>
+        <div>source:</div>
+        <div>{_snippet.source}</div>
+      </div>
+
+Save the file and go back to "./lib/app/index.js" and change the `page.render();` line in the view route to `page.render('view');`. This tells derby to look for the view template instead if the index template.???
+
+It should look like this(comments omitted):
+
+    var derby = require('derby')
+      , app = derby.createApp(module)
+      , get = app.get
+      , view = app.view
+      , ready = app.ready
+      , start = +new Date()
+    
+    derby.use(require('../../ui'))
+    
+    
+    // ROUTES //
+    
+    
+    get('/', function(page, model, params) {
+    
+        model.subscribe('snippster.data', function(err, data){
+    
+            data.setNull('snippets',[
+                {
+                    title: "Snippet One",
+                    description: "Desc of snippet one",
+                    source: "print x;"
+                },
+                {
+                    title: "Snippet Two",
+                    description: "Desc of snippet two",
+                    source: "print y;"
+                },
+                {
+                    title: "Snippet Three",
+                    description: "Desc of snippet three",
+                    source: "print z;"
+                }
+            ]);
+    
+            model.set('_snippet',{
+                            title: "title",
+                            description: "description",
+                            source: "source"
+                        });
+    
+            model.ref('_snippets', data.path() +".snippets");
+            page.render();
+        });
+    
+    });
+    
+    
+    get('/view/:snippetId([0-9]+)', function(page, model, params){
+        model.subscribe('snippster.data.snippets.' + params.snippetId, function(err, data){
+            model.ref('_snippet', data);
+            if(!model.get('_snippet'))
+                throw '404: ' + params.url
+            console.log(model.get('_snippet'));
+            page.render('view');
+        });
+    });
+
+
+Now save and restart your server and goto the "/" first and then to "/view/1", it should look like this (IMAGE 053)
+
+##NOTE TO SOMEONE, EXPLAIN HOW THIS WORKS!
+
+Okay now lets add another view, create a new file "./views/app/edit.html" and paste this code:
+
+    <Body:>
+      Edit snippet:
+      <form id=snippet x-bind="submit: saveSnippet">
+        Title:<br>
+        <input id=title value={_snippet.title}><br>
+        Description:<br>
+        <input id=description value={_snippet.description}><br>
+        Source:<br>
+        <input id=source value={_snippet.source}><br>
+        <input id=add-button type=submit value=Save>
+      </form>
+
+
+Now lets add the new route and the saveSnippet function, first off the route, add this route ater the view route:
+
+    get('/edit/:snippetId([0-9]+)', function(page, model, params){
+        model.subscribe('snippster.data.snippets.' + params.snippetId, function(err, data){
+            model.set('_snippet', model.get(data.path()));
+            if(!model.get(data.path()))
+                throw '404: ' + params.url
+            console.log(model.get('_snippet'));
+            page.render('edit');
+        });
+    });
+
+
+As you can see the only difference between the edit route and the view route is the actual route is /edit instead of /view and page.render('edit') instead of page.render('view') and that we don't reference the snippet, we don't want to update the snippet before we press save.
+
+Now lets add the saveSnippet function, the function looks like this:
+
+    this.saveSnippet = function(e, el, next){
+        snippet = model.get('_snippet');
+        if(snippet.title && snippet.description && snippet.source){
+            if(!snippet.id){
+                snippets = model.get('snippster.data.snippets');
+                snippet.id = snippets.length;
+                model.push('snippster.data.snippets', snippet);
+            }else{
+                //Works
+                model.set('snippster.data.snippets.'+ snippet.id +'.title', snippet.title);
+                model.set('snippster.data.snippets.'+ snippet.id +'.description', snippet.description);
+                model.set('snippster.data.snippets.'+ snippet.id +'.source', snippet.source);
+
+                //Doesn't work (Well it set the model but lists adds another item and on refresh shows everything right
+                //model.set('snippster.data.snippets.'+ snippet.id', snippet);
+            }
+        }
+    };
+
+
+Start the server go to "/" and then to "/edit/1" and this is what you should see: (IMAGE 054)
+
+Also open "/" in a window and change something and save and see how the list is updated with the new data.
+
+
+

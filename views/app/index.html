@@ -22,6 +22,7 @@
   <ui:connectionAlert>
 
 <Body:>
+
   <strong>Snippets:</strong>
   {#each _snippets}
     <div>
@@ -32,4 +33,13 @@
       <div>{source}</div>
     </div>
   {/}
-  <button x-bind="click: addSnippet">Add</button>
+
+  <form id=newSnippet x-bind="submit: addSnippet">
+    Title:<br>
+    <input id=title value={_newSnippet.title}><br>
+    Description:<br>
+    <input id=description value={_newSnippet.description}><br>
+    Source:<br>
+    <input id=source value={_newSnippet.source}><br>
+    <input id=add-button type=submit value=Add>
+  </form>

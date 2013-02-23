@@ -384,4 +384,513 @@ So what happens? Well we removed the static text index and replaced with a bold 
 Lets commit
 
     $git commit -am "output the snippets in the index.html view"
+    $git checkout master
+    $git merge 03-add-model
+    
+04 - DOM event binding
+----------------------
 
+Lets checkout a new branch
+
+    $git checkout -b 04-dom-event-binding
+    
+What we're going to do is add a button to the index view that when clicked it's going to call a function that will just push another snippet into the _snippets referece (pointing to "snippster.data.snippets", we could use that path also but it's longer to write.
+
+Okay so to get started open "./lib/app/index.js" it should look like this:
+
+    var derby = require('derby')
+      , app = derby.createApp(module)
+      , get = app.get
+      , view = app.view
+      , ready = app.ready
+      , start = +new Date()
+    
+    derby.use(require('../../ui'))
+    
+    
+    // ROUTES //
+    
+    get('/', function(page, model, params) {
+    
+        model.subscribe('snippster.data', function(err, data){
+    
+            data.setNull('snippets',[
+                {
+                    title: "Snippet One",
+                    description: "Desc of snippet one",
+                    source: "print x;"
+                },
+                {
+                    title: "Snippet Two",
+                    description: "Desc of snippet two",
+                    source: "print y;"
+                },
+                {
+                    title: "Snippet Three",
+                    description: "Desc of snippet three",
+                    source: "print z;"
+                }
+            ]);
+    
+            model.ref('_snippets', data.path() +".snippets");
+            console.log(model.get('_snippets'));
+            page.render();
+        });
+    
+    });
+
+Now make it look like this:
+
+    var derby = require('derby')
+      , app = derby.createApp(module)
+      , get = app.get
+      , view = app.view
+      , ready = app.ready
+      , start = +new Date()
+    
+    derby.use(require('../../ui'))
+    
+    
+    // ROUTES //
+    
+    get('/', function(page, model, params) {
+    
+        model.subscribe('snippster.data', function(err, data){
+    
+            data.setNull('snippets',[
+                {
+                    title: "Snippet One",
+                    description: "Desc of snippet one",
+                    source: "print x;"
+                },
+                {
+                    title: "Snippet Two",
+                    description: "Desc of snippet two",
+                    source: "print y;"
+                },
+                {
+                    title: "Snippet Three",
+                    description: "Desc of snippet three",
+                    source: "print z;"
+                }
+            ]);
+    
+            model.ref('_snippets', data.path() +".snippets");
+            console.log(model.get('_snippets'));
+            page.render();
+        });
+    
+    });
+    
+    ready(function(model) {
+        this.addSnippet = function(){
+            model.push('_snippets', {
+                            title: "Snippet Four",
+                            description: "Desc of snippet four",
+                            source: "print 4;"
+                        });
+        }
+    });
+    
+What we've done is add the ready function, similar to jQuery's $(document).ready(). Within it we declare this.addSnippet(), this is the function that will be exposed to the DOM for binding. When called it will push a snippet object to _snippets as promised.
+
+Now open "./views/app/index.html" it looks like this:
+
+    <Title:>
+      Snippster
+    
+    <Header:>
+      <!-- This is a component defined in the /ui directory -->
+      <ui:connectionAlert>
+    
+    <Body:>
+      <strong>Snippets:</strong>
+      {#each _snippets}
+        <div>
+          <div>Title:{title}</div>
+          <div>Description:</div>
+          <div>{description}</div>
+          <div>source:</div>
+          <div>{source}</div>
+        </div>
+      {/}
+      
+Well this time we only add one line to the end of the file:
+
+    <button x-bind="click: addSnippet">Add</button>
+    
+So it should look like:
+
+    <Title:>
+      Snippster
+    
+    <Header:>
+      <!-- This is a component defined in the /ui directory -->
+      <ui:connectionAlert>
+    
+    <Body:>
+      <strong>Snippets:</strong>
+      {#each _snippets}
+        <div>
+          <div>Title:{title}</div>
+          <div>Description:</div>
+          <div>{description}</div>
+          <div>source:</div>
+          <div>{source}</div>
+        </div>
+      {/}
+      <button x-bind="click: addSnippet">Add</button>
+      
+Save those files and startup the server. Now you should se something like this (IMAGE 041)
+
+And now try press the Add button, a new snippet shows up, this is what got me interested in the first place, I've been doing this jQuery and in a fairly small app it gets tedious and in a bigger one it's a real headace, atleast for me. Now it should look like this (IMAGE 042)
+
+For extra fun open another browser and goto http://localhost:3000 and while looking at both windows click the Add button, now you see both are update instantly (almost atleast)
+
+Lets do a commit
+
+    $git commit -am "Added a dom event binding"
+    
+Well so far we haven't really done much useful but lets start now. How about being able to add you own snippets?
+
+Open "./lib/app/index.js", should look like this(comments omitted):
+
+    var derby = require('derby')
+      , app = derby.createApp(module)
+      , get = app.get
+      , view = app.view
+      , ready = app.ready
+      , start = +new Date()
+    
+    derby.use(require('../../ui'))
+    
+    
+    // ROUTES //
+    
+    get('/', function(page, model, params) {
+    
+        model.subscribe('snippster.data', function(err, data){
+    
+            data.setNull('snippets',[
+                {
+                    title: "Snippet One",
+                    description: "Desc of snippet one",
+                    source: "print x;"
+                },
+                {
+                    title: "Snippet Two",
+                    description: "Desc of snippet two",
+                    source: "print y;"
+                },
+                {
+                    title: "Snippet Three",
+                    description: "Desc of snippet three",
+                    source: "print z;"
+                }
+            ]);
+    
+            model.ref('_snippets', data.path() +".snippets");
+            console.log(model.get('_snippets'));
+            page.render();
+        });
+    
+    });
+    
+    ready(function(model) {
+        this.addSnippet = function(){
+            model.push('_snippets', {
+                            title: "Snippet Four",
+                            description: "Desc of snippet four",
+                            source: "print 4;"
+                        });
+        }
+    });
+    
+First of lets create a _newSnippet model that will hold the values right before model.ref(..)
+
+    model.set('_newSnippet',{
+                    title: "",
+                    description: "",
+                    source: ""
+                });
+    
+    model.ref('_snippets', data.path() +".snippets");
+    
+So now the "./lib/app/index.js" should look like this(comments omitted):
+
+    var derby = require('derby')
+      , app = derby.createApp(module)
+      , get = app.get
+      , view = app.view
+      , ready = app.ready
+      , start = +new Date()
+    
+    derby.use(require('../../ui'))
+    
+    
+    // ROUTES //
+    
+    get('/', function(page, model, params) {
+    
+        model.subscribe('snippster.data', function(err, data){
+    
+            data.setNull('snippets',[
+                {
+                    title: "Snippet One",
+                    description: "Desc of snippet one",
+                    source: "print x;"
+                },
+                {
+                    title: "Snippet Two",
+                    description: "Desc of snippet two",
+                    source: "print y;"
+                },
+                {
+                    title: "Snippet Three",
+                    description: "Desc of snippet three",
+                    source: "print z;"
+                }
+            ]);
+    
+            model.set('_newSnippet',{
+                            title: "title",
+                            description: "description",
+                            source: "source"
+                        });
+                        
+            model.ref('_snippets', data.path() +".snippets");
+            console.log(model.get('_snippets'));
+            page.render();
+        });
+    
+    });
+    
+    ready(function(model) {
+        this.addSnippet = function(){
+            model.push('_snippets', {
+                            title: "Snippet Four",
+                            description: "Desc of snippet four",
+                            source: "print 4;"
+                        });
+        }
+    });
+    
+Save and open the file "./views/app.index.html", it should look like this(comments omitted):
+
+    <Title:>
+      Snippster
+    
+    <Header:>
+      <!-- This is a component defined in the /ui directory -->
+      <ui:connectionAlert>
+    
+    <Body:>
+      <strong>Snippets:</strong>
+      {#each _snippets}
+        <div>
+          <div>Title:{title}</div>
+          <div>Description:</div>
+          <div>{description}</div>
+          <div>source:</div>
+          <div>{source}</div>
+        </div>
+      {/}
+      <button x-bind="click: addSnippet">Add</button>
+      
+Lets dropp the button and add a form for a new snippet and end up with something like this:
+
+    <Title:>
+      Snippster
+    
+    <Header:>
+      <!-- This is a component defined in the /ui directory -->
+      <ui:connectionAlert>
+    
+    <Body:>
+    
+      <strong>Snippets:</strong>
+      {#each _snippets}
+        <div>
+          <div>Title:{title}</div>
+          <div>Description:</div>
+          <div>{description}</div>
+          <div>source:</div>
+          <div>{source}</div>
+        </div>
+      {/}
+    
+      <form id=newSnippet x-bind="submit: addSnippet">
+        Title:<br>
+        <input id=title value={_newSnippet.title}><br>
+        Description:<br>
+        <input id=description value={_newSnippet.description}><br>
+        Source:<br>
+        <input id=source value={_newSnippet.source}><br>
+        <input id=add-button type=submit value=Add>
+      </form>
+
+Save and start the server, it should look something like this (IMAGE 043)
+
+As you can see the form is populated by the _newSnippet model but pressing add still just adds that static snippet, now we would like to edit this and add our own snippet.
+
+Crack open "./lib/app/index.js" looks like this(comments omitted):
+
+    var derby = require('derby')
+      , app = derby.createApp(module)
+      , get = app.get
+      , view = app.view
+      , ready = app.ready
+      , start = +new Date()
+    
+    derby.use(require('../../ui'))
+    
+    
+    // ROUTES //
+    
+    get('/', function(page, model, params) {
+    
+        model.subscribe('snippster.data', function(err, data){
+    
+            data.setNull('snippets',[
+                {
+                    title: "Snippet One",
+                    description: "Desc of snippet one",
+                    source: "print x;"
+                },
+                {
+                    title: "Snippet Two",
+                    description: "Desc of snippet two",
+                    source: "print y;"
+                },
+                {
+                    title: "Snippet Three",
+                    description: "Desc of snippet three",
+                    source: "print z;"
+                }
+            ]);
+    
+            model.set('_newSnippet',{
+                            title: "title",
+                            description: "description",
+                            source: "source"
+                        });
+                        
+            model.ref('_snippets', data.path() +".snippets");
+            console.log(model.get('_snippets'));
+            page.render();
+        });
+    
+    });
+    
+    ready(function(model) {
+        this.addSnippet = function(){
+            model.push('_snippets', {
+                            title: "Snippet Four",
+                            description: "Desc of snippet four",
+                            source: "print 4;"
+                        });
+        }
+    });
+    
+Lets remove
+
+    model.push('_snippets', {
+                    title: "Snippet Four",
+                    description: "Desc of snippet four",
+                    source: "print 4;"
+                });
+
+and replace it with:
+
+    newSnippet = model.get("_newSnippet");
+
+    if(newSnippet.title && newSnippet.description && newSnippet.source){
+        model.push('_snippets', newSnippet);
+        model.set('_newSnippet',{
+                            title: "title",
+                            description: "description",
+                            source: "source"
+                        });
+    }
+    
+First off, get the _newSnippet object
+
+Second, check that none of the fields is empty
+
+Third, if it checksout push the newSnippet object into the _snippets array
+
+And last, reset the _newSnippet model to the defaults
+
+Now the file should look something like this(comments omitted):
+
+    var derby = require('derby')
+      , app = derby.createApp(module)
+      , get = app.get
+      , view = app.view
+      , ready = app.ready
+      , start = +new Date()
+    
+    derby.use(require('../../ui'))
+    
+    
+    // ROUTES //
+    
+    get('/', function(page, model, params) {
+    
+        model.subscribe('snippster.data', function(err, data){
+    
+            data.setNull('snippets',[
+                {
+                    title: "Snippet One",
+                    description: "Desc of snippet one",
+                    source: "print x;"
+                },
+                {
+                    title: "Snippet Two",
+                    description: "Desc of snippet two",
+                    source: "print y;"
+                },
+                {
+                    title: "Snippet Three",
+                    description: "Desc of snippet three",
+                    source: "print z;"
+                }
+            ]);
+    
+            model.set('_newSnippet',{
+                            title: "title",
+                            description: "description",
+                            source: "source"
+                        });
+    
+            model.ref('_snippets', data.path() +".snippets");
+            console.log(model.get('_snippets'));
+            page.render();
+        });
+    
+    });
+    
+    ready(function(model) {
+        this.addSnippet = function(e, el, next){
+            newSnippet = model.get("_newSnippet");
+    
+            if(newSnippet.title && newSnippet.description && newSnippet.source){
+                model.push('_snippets', newSnippet);
+                model.set('_newSnippet',{
+                                    title: "title",
+                                    description: "description",
+                                    source: "source"
+                                });
+            }
+        };
+    });
+    
+Now save and start the server an give this a try. It should look something like this(I filled out the form with my awsome snippet) (IMAGE 044)
+
+Now fill it out with one of your snippets and press add, it should look something like this (IMAGE 045)
+
+Awesome! =), save, commit and merge
+
+    $git commit -am "added functionality to add our own snippets"
+    $git checkout master
+    $git merge 04-dom-event-binding

@@ -1517,4 +1517,263 @@ Lets commit and merge
     $git checkout master
     $git merge 05-routes
     
-    
+06 - Persistence
+----------------
+
+Now lets add some persistence to the app so the snippets don't disappear when the server is restarted.
+
+First install mongodb for your OS http://docs.mongodb.org/manual/tutorial/
+
+First thing to do is to add a dependence to "./package.json". Now it should look something like this:
+
+    {
+      "name": "derby-learn-by-example",
+      "description": "",
+      "version": "0.0.0",
+      "main": "./server.js",
+      "dependencies": {
+        "derby": "*",
+        "express": "3.x",
+        "gzippo": ">=0.2.0"
+      },
+      "private": true
+    }
+
+Change that to:
+
+    {
+      "name": "derby-learn-by-example",
+      "description": "",
+      "version": "0.0.0",
+      "main": "./server.js",
+      "dependencies": {
+        "derby": "*",
+        "express": "3.x",
+        "gzippo": ">=0.2.0",
+        "racer-db-mongo": "*"
+      },
+      "private": true
+    }
+
+
+Run "npm install" to install the new dependencies
+
+Then we need to update the server side to use mongo db
+
+Edit "./lib/server/index.js" and change the line:
+
+    var store = derby.createStore({listen: server})
+
+To:
+
+    derby.use(require('racer-db-mongo')); // This line is new
+
+    var store = derby.createStore({
+      listen: server,
+      db:      {type: 'Mongo', uri: 'mongodb://localhost/snippets'}
+    })
+
+
+now we can remove the mockup data and start using real data
+
+remove from "./lib/app/index.js"
+
+    data.setNull('snippets', [
+      {
+        title: "Snippet One",
+        description: "Desc of snippet one",
+        source: "print x;"
+      },
+      {
+        title: "Snippet Two",
+        description: "Desc of snippet two",
+        source: "print y;"
+      },
+      {
+        title: "Snippet Three",
+        description: "Desc of snippet three",
+        source: "print z;"
+      }
+    ]);
+
+further down we need to change the view and edit routes from this:
+
+    get('/view/:snippetId([0-9]+)', function(page, model, params){
+        model.subscribe('snippster.data.snippets.' + params.snippetId, function(err, data){
+            model.ref('_snippet', data);
+            if(!model.get('_snippet'))
+                throw '404: ' + params.url
+            console.log(model.get('_snippet'));
+            page.render('view');
+        });
+    });
+
+    get('/edit/:snippetId([0-9]+)', function(page, model, params){
+        model.subscribe('snippster.data.snippets.' + params.snippetId, function(err, data){
+            model.set('_snippet', model.get(data.path()));
+            if(!model.get(data.path()))
+                throw '404: ' + params.url
+            console.log(model.get('_snippet'));
+            page.render('edit');
+        });
+    });
+
+To this:
+
+    get('/view/:snippetId([0-9]+)', function(page, model, params){
+        model.subscribe('snippster.data.snippets', function(err, data){
+            model.ref('_snippet', data.at(params.snippetId));
+            if(!model.get('_snippet'))
+                throw '404: ' + params.url
+            page.render('view');
+        });
+    });
+
+    get('/edit/:snippetId([0-9]+)', function(page, model, params){
+        model.subscribe('snippster.data.snippets', function(err, data){
+            model.set('_snippet', model.get(data.path() + "." + params.snippetId));
+            if(!model.get(data.path()))
+                throw '404: ' + params.url
+            page.render('edit');
+        });
+    });
+
+And lastly the saveSnippet function from:
+
+    ready(function(model) {
+        this.saveSnippet = function(e, el, next){
+            snippet = model.get('_snippet');
+
+            if(snippet.title && snippet.description && snippet.source){
+                if(!snippet.id){
+                    snippets = model.get('snippster.data.snippets');
+                    snippet.id = snippets.length;
+                    model.push('snippster.data.snippets', snippet);
+                }else{
+                    //Works
+                    model.set('snippster.data.snippets.'+ snippet.id +'.title', snippet.title);
+                    model.set('snippster.data.snippets.'+ snippet.id +'.description', snippet.description);
+                    model.set('snippster.data.snippets.'+ snippet.id +'.source', snippet.source);
+
+                    //Doesn't work (Well it set the model but lists adds another item and on refresh shows everything right
+                    //model.set('snippster.data.snippets.'+ snippet.id', snippet);
+                }
+            }
+        };
+    });
+
+To:
+
+    ready(function(model) {
+        this.saveSnippet = function(e, el, next){
+            snippet = model.get('_snippet');
+            if(snippet.title && snippet.description && snippet.source){
+                if(snippet.id == undefined){
+                    snippets = model.get('snippster.data.snippets');
+                    if(snippets)
+                        snippet.id = snippets.length;
+                    else
+                        snippet.id = 0;
+
+                    model.push('snippster.data.snippets', snippet);
+                }else{
+                    //Works
+                    model.set('snippster.data.snippets.'+ snippet.id +'.title', snippet.title);
+                    model.set('snippster.data.snippets.'+ snippet.id +'.description', snippet.description);
+                    model.set('snippster.data.snippets.'+ snippet.id +'.source', snippet.source);
+                    model.set('snippster.data.snippets.'+ snippet.id +'.id', snippet.id);
+
+                    //Doesn't work (Well it set the model but lists adds another item and on refresh shows everything right
+                    //model.set('snippster.data.snippets.'+ snippet.id', snippet);
+                }
+                app.history.push('/');
+            }
+        };
+    });
+
+All in all the "./lib/app/index.js" should look like this:
+
+    var derby = require('derby')
+      , app = derby.createApp(module)
+      , get = app.get
+      , view = app.view
+      , ready = app.ready
+      , start = +new Date()
+
+    derby.use(require('../../ui'))
+
+
+    // ROUTES //
+
+
+    get('/', function(page, model, params) {
+
+        model.subscribe('snippster.data', function(err, data){
+
+            model.set('_snippet',{
+                            title: "title",
+                            description: "description",
+                            source: "source"
+                        });
+
+            model.ref('_snippets', data.path() +".snippets");
+            page.render();
+        });
+
+    });
+
+
+    get('/view/:snippetId([0-9]+)', function(page, model, params){
+        model.subscribe('snippster.data.snippets', function(err, data){
+            model.ref('_snippet', data.at(params.snippetId));
+            if(!model.get('_snippet'))
+                throw '404: ' + params.url
+            page.render('view');
+        });
+    });
+
+    get('/edit/:snippetId([0-9]+)', function(page, model, params){
+        model.subscribe('snippster.data.snippets', function(err, data){
+            model.set('_snippet', model.get(data.path() + "." + params.snippetId));
+            if(!model.get(data.path()))
+                throw '404: ' + params.url
+            page.render('edit');
+        });
+    });
+
+    ready(function(model) {
+        this.saveSnippet = function(e, el, next){
+            snippet = model.get('_snippet');
+            if(snippet.title && snippet.description && snippet.source){
+                if(snippet.id == undefined){
+                    snippets = model.get('snippster.data.snippets');
+                    if(snippets)
+                        snippet.id = snippets.length;
+                    else
+                        snippet.id = 0;
+
+                    model.push('snippster.data.snippets', snippet);
+                }else{
+                    //Works
+                    model.set('snippster.data.snippets.'+ snippet.id +'.title', snippet.title);
+                    model.set('snippster.data.snippets.'+ snippet.id +'.description', snippet.description);
+                    model.set('snippster.data.snippets.'+ snippet.id +'.source', snippet.source);
+                    model.set('snippster.data.snippets.'+ snippet.id +'.id', snippet.id);
+
+                    //Doesn't work (Well it set the model but lists adds another item and on refresh shows everything right
+                    //model.set('snippster.data.snippets.'+ snippet.id', snippet);
+                }
+                app.history.push('/');
+            }
+        };
+    });
+
+THIS SECTION NEEDS MORE ATTENTION;
+
+Okay so start the server and play around
+
+Lets commit and merge
+
+    $git commit -am "added persistence"
+    $git checkout mater
+    $git merge 06-persistence

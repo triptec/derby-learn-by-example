@@ -22,4 +22,13 @@
   <ui:connectionAlert>
 
 <Body:>
-  index
+  <strong>Snippets:</strong>
+  {#each _snippets}
+    <div>
+      <div>Title:{title}</div>
+      <div>Description:</div>
+      <div>{description}</div>
+      <div>source:</div>
+      <div>{source}</div>
+    </div>
+  {/}

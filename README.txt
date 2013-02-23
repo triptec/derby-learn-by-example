@@ -1,4 +1,8 @@
-derby learn by example
+Derby: Learn by example
+
+Now first things first, get this (http://open.spotify.com/album/37PmPATTGfiCR5TjAbBzS1) album playing on your soundsystem. If you got any good music please send it to me on spotify (http://open.spotify.com/user/sniglekott).
+
+Then let's start with opening a terminal and get going with those commands:
 
 $sudo npm -g install git://github.com/codeparty/derby.git#master
 
@@ -191,23 +195,7 @@ It should look something like this (IMAGE 021)
 
 Now that doesn't look like it's clean, lets fix that.
 
-Open "./views/app/index.html", it looks like this:
-
-<!--
-  Derby templates are similar to Handlebars, except that they are first
-  parsed as HTML, and there are a few extensions to make them work directly
-  with models. A single HTML template defines the HTML output, the event
-  handlers that update the model after user interaction, and the event handlers
-  that update the DOM when the model changes.
-
-  As in Handlebars, double curly braces output a value literally. Derby
-  templates add single curly braces, which output a value and set up
-  model <- -> view bindings for that object.
-
-  Elements that end in colon define template names. Pre-defined templates
-  are capitalized by convention, but template names are case-insensitive.
-  Pre-defined templates are automatically included when the page is rendered.
--->
+Open "./views/app/index.html", it looks like this(comments omitted):
 
 <Title:>
   {{roomName}} - {_room.visits} visits
@@ -233,23 +221,7 @@ Open "./views/app/index.html", it looks like this:
   {/}
 
 
-Lets change that to:
-
-<!--
-  Derby templates are similar to Handlebars, except that they are first
-  parsed as HTML, and there are a few extensions to make them work directly
-  with models. A single HTML template defines the HTML output, the event
-  handlers that update the model after user interaction, and the event handlers
-  that update the DOM when the model changes.
-
-  As in Handlebars, double curly braces output a value literally. Derby
-  templates add single curly braces, which output a value and set up
-  model <- -> view bindings for that object.
-
-  Elements that end in colon define template names. Pre-defined templates
-  are capitalized by convention, but template names are case-insensitive.
-  Pre-defined templates are automatically included when the page is rendered.
--->
+Lets change that to(comments omitted):
 
 <Title:>
   Snippster
@@ -338,13 +310,77 @@ get('/', function(page, model, params) {
 });
 
 
+We updated the index route and here what we added:
+
+1. We subscribe to a model, from the Derby docs "The model.subscribe method populates a model with data from its associated store and declares that this data should be kept up to date as it changes. It is possible to define subscriptions in terms of path patterns or queries.". So this means that if the data in path "snippster.data" is updated so is our model. Then the callback here's more from the docs "The subscribe callback takes the arguments callback(err, scopedModels...). If the transaction succeeds, err is null. Otherwise, it is a string with an error message. This message is 'disconnected' if Socket.IO is not currently connected. The remaining arguments are scoped models that correspond to each subscribe target’s path respectively."
+
+2. So now data is a scoped model, what is a scoped model? From the docs "Scoped models provide a more convenient way to interact with commonly used paths. They support the same methods, and they provide the path argument to accessors, mutators, and event subscribers.". Sweet, then we use the setNull method, this method will only set the path if it's null, in this case the path "snippster.data" + "snippets" = "snippster.data.snippets" is null and is set to a array of snippets.
+
+3. model.ref sets up a reference to a path. Here's the docs "References make it possible to write business logic and templates that interact with the model in a general way. They redirect model operations from a reference path to the underlying data, and they set up event listeners that emit model events on both the reference and the actual object’s path.
+
+References must be declared per model, since calling model.ref creates a number of event listeners in addition to setting a ref object in the model. When a reference is created, a set model event is emitted. Internally, model.set is used to add the reference to the model."
+
+4. console.log(model.get('_snippets')); should output those new snippets in your console
+
+5. page.render() renders the page. 
+
+Start your server, the rendered page shouldn't have change but in the console you should see you models logged like this:
+
+ver: 0 - set 'snippster.data.snippets', [ { title: 'Snippet One',
+    description: 'Desc of snippet one',
+    source: 'print x;' },
+  { title: 'Snippet Two',
+    description: 'Desc of snippet two',
+    source: 'print y;' },
+  { title: 'Snippet Three',
+    description: 'Desc of snippet three',
+    source: 'print z;' } ]
 
 
+Lets commit this
 
+$git commit -am "added some models"
 
+Next, wouldn't it be neat to have these models show up on the page? Ofcouse it would!
 
+Open the "./views/app/index.html", should look like this(comments omitted): 
 
+<Title:>
+  Snippster
 
+<Header:>
+  <!-- This is a component defined in the /ui directory -->
+  <ui:connectionAlert>
 
+<Body:>
+  index
 
+Make it look like this(commenst omitted):
+
+<Title:>
+  Snippster
+
+<Header:>
+  <!-- This is a component defined in the /ui directory -->
+  <ui:connectionAlert>
+
+<Body:>
+  <strong>Snippets:</strong>
+  {#each _snippets}
+    <div>
+      <div>Title:{title}</div>
+      <div>Description:</div>
+      <div>{description}</div>
+      <div>source:</div>
+      <div>{source}</div>
+    </div>
+  {/}
+
+Start the server and lo and behold those beautiful snippets! It should look like this (IMAGE 03)
+
+So what happens? Well we removed the static text index and replaced with a bold "Snippets" this everyone get, but the next line we use {#each _snippets} this tag is ended with the {/} tag and iterat over the _snippets array (remember the model.ref('_snippets', data.path() +".snippets")  in the "./lib/app/index.js", this is where it come into play). [For each iteration you get the snippet context so you can use {title}, {description} and {source}]?
+
+Lets commit
+
+$git commit -am "output the snippets in the index.html view"
 

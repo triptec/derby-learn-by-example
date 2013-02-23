@@ -1,4 +1,3 @@
-<import: src="./new">
 <import: src="./view">
 <import: src="./edit">
 
@@ -14,7 +13,7 @@
   <strong>Snippets:</strong>
   {#each _snippets}
     <div>
-      <div>Title:{.title}</div>
+      <div><a href="/view/{.id}">Title:{.title}</a></div>
       <div>Description:</div>
       <div>{.description}</div>
       <div>source:</div>

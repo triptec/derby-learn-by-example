@@ -606,9 +606,9 @@ Open "./lib/app/index.js", should look like this(comments omitted):
         }
     });
     
-First of lets create a _newSnippet model that will hold the values right before model.ref(..)
+First of lets create a _snippet model that will hold the values right before model.ref(..)
 
-    model.set('_newSnippet',{
+    model.set('_snippet',{
                     title: "",
                     description: "",
                     source: ""
@@ -652,7 +652,7 @@ So now the "./lib/app/index.js" should look like this(comments omitted):
                 }
             ]);
     
-            model.set('_newSnippet',{
+            model.set('_snippet',{
                             title: "title",
                             description: "description",
                             source: "source"
@@ -719,19 +719,19 @@ Lets dropp the button and add a form for a new snippet and end up with something
         </div>
       {/}
     
-      <form id=newSnippet x-bind="submit: addSnippet">
+      <form x-bind="submit: addSnippet">
         Title:<br>
-        <input id=title value={_newSnippet.title}><br>
+        <input id=title value={_snippet.title}><br>
         Description:<br>
-        <input id=description value={_newSnippet.description}><br>
+        <input id=description value={_snippet.description}><br>
         Source:<br>
-        <input id=source value={_newSnippet.source}><br>
+        <input id=source value={_snippet.source}><br>
         <input id=add-button type=submit value=Add>
       </form>
 
 Save and start the server, it should look something like this (IMAGE 043)
 
-As you can see the form is populated by the _newSnippet model but pressing add still just adds that static snippet, now we would like to edit this and add our own snippet.
+As you can see the form is populated by the _snippet model but pressing add still just adds that static snippet, now we would like to edit this and add our own snippet.
 
 Crack open "./lib/app/index.js" looks like this(comments omitted):
 
@@ -769,7 +769,7 @@ Crack open "./lib/app/index.js" looks like this(comments omitted):
                 }
             ]);
     
-            model.set('_newSnippet',{
+            model.set('_snippet',{
                             title: "title",
                             description: "description",
                             source: "source"
@@ -802,24 +802,24 @@ Lets remove
 
 and replace it with:
 
-    newSnippet = model.get("_newSnippet");
+    newSnippet = model.get("_snippet");
 
     if(newSnippet.title && newSnippet.description && newSnippet.source){
         model.push('_snippets', newSnippet);
-        model.set('_newSnippet',{
+        model.set('_snippet',{
                             title: "title",
                             description: "description",
                             source: "source"
                         });
     }
     
-First off, get the _newSnippet object
+First off, get the _snippet object
 
 Second, check that none of the fields is empty
 
 Third, if it checksout push the newSnippet object into the _snippets array
 
-And last, reset the _newSnippet model to the defaults
+And last, reset the _snippet model to the defaults
 
 Now the file should look something like this(comments omitted):
 
@@ -857,7 +857,7 @@ Now the file should look something like this(comments omitted):
                 }
             ]);
     
-            model.set('_newSnippet',{
+            model.set('_snippet',{
                             title: "title",
                             description: "description",
                             source: "source"
@@ -872,11 +872,11 @@ Now the file should look something like this(comments omitted):
     
     ready(function(model) {
         this.addSnippet = function(e, el, next){
-            newSnippet = model.get("_newSnippet");
+            newSnippet = model.get("_snippet");
     
             if(newSnippet.title && newSnippet.description && newSnippet.source){
                 model.push('_snippets', newSnippet);
-                model.set('_newSnippet',{
+                model.set('_snippet',{
                                     title: "title",
                                     description: "description",
                                     source: "source"
@@ -936,7 +936,7 @@ So lets start with "./lib/app/index.js", it looks like this(comments omitted):
                 }
             ]);
     
-            model.set('_newSnippet',{
+            model.set('_snippet',{
                             title: "title",
                             description: "description",
                             source: "source"
@@ -951,11 +951,11 @@ So lets start with "./lib/app/index.js", it looks like this(comments omitted):
     
     ready(function(model) {
         this.addSnippet = function(e, el, next){
-            newSnippet = model.get("_newSnippet");
+            newSnippet = model.get("_snippet");
     
             if(newSnippet.title && newSnippet.description && newSnippet.source){
                 model.push('_snippets', newSnippet);
-                model.set('_newSnippet',{
+                model.set('_snippet',{
                                     title: "title",
                                     description: "description",
                                     source: "source"
@@ -1076,11 +1076,11 @@ So now your "./lib/app/index.js" should look something like this(comments omitte
 
     ready(function(model) {
         this.addSnippet = function(e, el, next){
-            newSnippet = model.get("_newSnippet");
+            newSnippet = model.get("_snippet");
     
             if(newSnippet.title && newSnippet.description && newSnippet.source){
                 model.push('_snippets', newSnippet);
-                model.set('_newSnippet',{
+                model.set('_snippet',{
                                     title: "title",
                                     description: "description",
                                     source: "source"
@@ -1103,6 +1103,44 @@ Create a new file "./views/app/view.html" and paste this code into it:
         <div>source:</div>
         <div>{_snippet.source}</div>
       </div>
+
+We also need to include this line in the top of "./views/app/index.html":
+
+    <import: src="./view">
+    
+So now it looks like this(comments omitted):
+    
+    <import: src="./view">
+
+    <Title:>
+      Snippster
+    
+    <Header:>
+      <!-- This is a component defined in the /ui directory -->
+      <ui:connectionAlert>
+    
+    <Body:>
+    
+      <strong>Snippets:</strong>
+      {#each _snippets}
+        <div>
+          <div>Title:{.title}</div>
+          <div>Description:</div>
+          <div>{.description}</div>
+          <div>source:</div>
+          <div>{.source}</div>
+        </div>
+      {/}
+    
+      <form x-bind="submit: addSnippet">
+        Title:<br>
+        <input id=title value={_snippet.title}><br>
+        Description:<br>
+        <input id=description value={_snippet.description}><br>
+        Source:<br>
+        <input id=source value={_snippet.source}><br>
+        <input id=add-button type=submit value=Add>
+      </form>
 
 Save the file and go back to "./lib/app/index.js" and change the `page.render();` line in the view route to `page.render('view');`. This tells derby to look for the view template instead if the index template.???
 
@@ -1168,11 +1206,11 @@ It should look like this(comments omitted):
 
     ready(function(model) {
         this.addSnippet = function(e, el, next){
-            newSnippet = model.get("_newSnippet");
+            newSnippet = model.get("_snippet");
     
             if(newSnippet.title && newSnippet.description && newSnippet.source){
                 model.push('_snippets', newSnippet);
-                model.set('_newSnippet',{
+                model.set('_snippet',{
                                     title: "title",
                                     description: "description",
                                     source: "source"
@@ -1214,7 +1252,7 @@ Now lets add the new route and the saveSnippet function, first off the route, ad
 
 As you can see the only difference between the edit route and the view route is the actual route is /edit instead of /view and page.render('edit') instead of page.render('view') and that we don't reference the snippet, we don't want to update the snippet before we press save.
 
-We need to modify the snippets and add a id attribute to make our life simpler when we save them (Possible better solution is welcome!). Here's the snippets creation:
+We need to modify the snippets and add a id attribute to make our life simpler when we save them (Possible better solution is welcome!). Here's the code:
 
     data.setNull('snippets',[
         {
@@ -1358,10 +1396,125 @@ The file ("./lib/app/index.js") should look like this(comments omitted):
 
 
 
+"./views/app/index.html"
+
+    <import: src="./view">
+    <import: src="./edit">
+    
+    <Title:>
+      Snippster
+    
+    <Header:>
+      <!-- This is a component defined in the /ui directory -->
+      <ui:connectionAlert>
+    
+    <Body:>
+    
+      <strong>Snippets:</strong>
+      {#each _snippets}
+        <div>
+          <div>Title:{.title}</div>
+          <div>Description:</div>
+          <div>{.description}</div>
+          <div>source:</div>
+          <div>{.source}</div>
+        </div>
+      {/}
+    
+      <form x-bind="submit: saveSnippet">
+        Title:<br>
+        <input id=title value={_snippet.title}><br>
+        Description:<br>
+        <input id=description value={_snippet.description}><br>
+        Source:<br>
+        <input id=source value={_snippet.source}><br>
+        <input id=add-button type=submit value=Add>
+      </form>
+
+
 Start the server go to "/" and then to "/edit/1" and this is what you should see: (IMAGE 054)
 
 Also open "/" in a window and change something and save and see how the list is updated with the new data.
 
 Lets commit this
 
+    $git add .
     $git commit -am "added some routes and some views"
+
+Lets add some links so we don't need to write in the locationbar the whole time:
+
+"./views/index.html":
+
+    <import: src="./view">
+    <import: src="./edit">
+    
+    <Title:>
+      Snippster
+    
+    <Header:>
+      <!-- This is a component defined in the /ui directory -->
+      <ui:connectionAlert>
+    
+    <Body:>
+    
+      <strong>Snippets:</strong>
+      {#each _snippets}
+        <div>
+          <div><a href="/view/{.id}">Title:{.title}</a></div>
+          <div>Description:</div>
+          <div>{.description}</div>
+          <div>source:</div>
+          <div>{.source}</div>
+        </div>
+      {/}
+    
+      New Snippet:
+      <form x-bind="submit: saveSnippet">
+        Title:<br>
+        <input value={_snippet.title}><br>
+        Description:<br>
+        <input value={_snippet.description}><br>
+        Source:<br>
+        <input value={_snippet.source}><br>
+        <input id=add-button type=submit value=Save>
+      </form>
+
+"./views/view.html":
+
+    <Body:>
+      <strong>Snippet:</strong>
+      <div>
+        <div>Title:{_snippet.title}</div>
+        <div>Description:</div>
+        <div>{_snippet.description}</div>
+        <div>source:</div>
+        <div>{_snippet.source}</div>
+      </div>
+      <a href="/">Home</a><br>
+      <a href="/edit/{_snippet.id}">Edit</a>
+
+"./views/edit.html":
+
+    <Body:>
+      Edit snippet:
+      <form id=snippet x-bind="submit: saveSnippet">
+        Title:<br>
+        <input id=title value={_snippet.title}><br>
+        Description:<br>
+        <input id=description value={_snippet.description}><br>
+        Source:<br>
+        <input id=source value={_snippet.source}><br>
+        <input id=add-button type=submit value=Save>
+      </form>
+      <a href="/">Home</a><br>
+      <a href="/view/{_snippet.id}">View</a>
+
+Here's how the views look like now IMAGE 055, 056, 057
+
+Lets commit and merge
+
+    $git commit -am "added some links"
+    $git checkout master
+    $git merge 05-routes
+    
+    

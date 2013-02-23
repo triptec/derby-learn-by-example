@@ -243,6 +243,9 @@ Clean and nice! Let's commit
     $git checkout master
     $git merge 02-clean-app
 
+03 - Models
+-----------
+
 Now let us start with models but first
 
     $git checkout -b 03-add-model

@@ -1074,6 +1074,20 @@ So now your "./lib/app/index.js" should look something like this(comments omitte
         });
     });
 
+    ready(function(model) {
+        this.addSnippet = function(e, el, next){
+            newSnippet = model.get("_newSnippet");
+    
+            if(newSnippet.title && newSnippet.description && newSnippet.source){
+                model.push('_snippets', newSnippet);
+                model.set('_newSnippet',{
+                                    title: "title",
+                                    description: "description",
+                                    source: "source"
+                                });
+            }
+        };
+    });
 Start your server and goto http://localhost:3000/view/1, now you should see this (IMAGE 051), the snippet isn't created yet. Now goto http://localhost:3000 and then goto http://localhost:3000/view/1 and now you should see this (IMAGE 052).
 
 Lets get a view to go with this new shiny route
@@ -1152,7 +1166,20 @@ It should look like this(comments omitted):
         });
     });
 
-
+    ready(function(model) {
+        this.addSnippet = function(e, el, next){
+            newSnippet = model.get("_newSnippet");
+    
+            if(newSnippet.title && newSnippet.description && newSnippet.source){
+                model.push('_snippets', newSnippet);
+                model.set('_newSnippet',{
+                                    title: "title",
+                                    description: "description",
+                                    source: "source"
+                                });
+            }
+        };
+    });
 Now save and restart your server and goto the "/" first and then to "/view/1", it should look like this (IMAGE 053)
 
 ##NOTE TO SOMEONE, EXPLAIN HOW THIS WORKS!
@@ -1172,7 +1199,7 @@ Okay now lets add another view, create a new file "./views/app/edit.html" and pa
       </form>
 
 
-Now lets add the new route and the saveSnippet function, first off the route, add this route ater the view route:
+Now lets add the new route and the saveSnippet function, first off the route, add this route after the view route:
 
     get('/edit/:snippetId([0-9]+)', function(page, model, params){
         model.subscribe('snippster.data.snippets.' + params.snippetId, function(err, data){
@@ -1187,7 +1214,31 @@ Now lets add the new route and the saveSnippet function, first off the route, ad
 
 As you can see the only difference between the edit route and the view route is the actual route is /edit instead of /view and page.render('edit') instead of page.render('view') and that we don't reference the snippet, we don't want to update the snippet before we press save.
 
-Now lets add the saveSnippet function, the function looks like this:
+We need to modify the snippets and add a id attribute to make our life simpler when we save them (Possible better solution is welcome!). Here's the snippets creation:
+
+    data.setNull('snippets',[
+        {
+            title: "Snippet One",
+            description: "Desc of snippet one",
+            source: "print x;",
+            id: 0
+
+        },
+        {
+            title: "Snippet Two",
+            description: "Desc of snippet two",
+            source: "print y;",
+            id: 1
+        },
+        {
+            title: "Snippet Three",
+            description: "Desc of snippet three",
+            source: "print z;",
+            id: 2
+        }
+    ]);
+
+Now lets change the addSnippet function to saveSnippet function, the function looks like this:
 
     this.saveSnippet = function(e, el, next){
         snippet = model.get('_snippet');
@@ -1207,11 +1258,110 @@ Now lets add the saveSnippet function, the function looks like this:
             }
         }
     };
+    
+The file ("./lib/app/index.js") should look like this(comments omitted):
+
+
+    var derby = require('derby')
+      , app = derby.createApp(module)
+      , get = app.get
+      , view = app.view
+      , ready = app.ready
+      , start = +new Date()
+    
+    derby.use(require('../../ui'))
+    
+    
+    // ROUTES //
+    
+    
+    get('/', function(page, model, params) {
+    
+        model.subscribe('snippster.data', function(err, data){
+    
+            data.setNull('snippets',[
+                {
+                    title: "Snippet One",
+                    description: "Desc of snippet one",
+                    source: "print x;",
+                    id: 0
+    
+                },
+                {
+                    title: "Snippet Two",
+                    description: "Desc of snippet two",
+                    source: "print y;",
+                    id: 1
+                },
+                {
+                    title: "Snippet Three",
+                    description: "Desc of snippet three",
+                    source: "print z;",
+                    id: 2
+                }
+            ]);
+    
+            model.set('_snippet',{
+                            title: "title",
+                            description: "description",
+                            source: "source"
+                        });
+    
+            model.ref('_snippets', data.path() +".snippets");
+            page.render();
+        });
+    
+    });
+    
+    
+    get('/view/:snippetId([0-9]+)', function(page, model, params){
+        model.subscribe('snippster.data.snippets.' + params.snippetId, function(err, data){
+            model.ref('_snippet', data);
+            if(!model.get('_snippet'))
+                throw '404: ' + params.url
+            console.log(model.get('_snippet'));
+            page.render('view');
+        });
+    });
+    
+    get('/edit/:snippetId([0-9]+)', function(page, model, params){
+        model.subscribe('snippster.data.snippets.' + params.snippetId, function(err, data){
+            model.set('_snippet', model.get(data.path()));
+            if(!model.get(data.path()))
+                throw '404: ' + params.url
+            console.log(model.get('_snippet'));
+            page.render('edit');
+        });
+    });
+    
+    ready(function(model) {
+        this.saveSnippet = function(e, el, next){
+            snippet = model.get('_snippet');
+    
+            if(snippet.title && snippet.description && snippet.source){
+                if(!snippet.id){
+                    snippets = model.get('snippster.data.snippets');
+                    snippet.id = snippets.length;
+                    model.push('snippster.data.snippets', snippet);
+                }else{
+                    //Works
+                    model.set('snippster.data.snippets.'+ snippet.id +'.title', snippet.title);
+                    model.set('snippster.data.snippets.'+ snippet.id +'.description', snippet.description);
+                    model.set('snippster.data.snippets.'+ snippet.id +'.source', snippet.source);
+    
+                    //Doesn't work (Well it set the model but lists adds another item and on refresh shows everything right
+                    //model.set('snippster.data.snippets.'+ snippet.id', snippet);
+                }
+            }
+        };
+    });
+
 
 
 Start the server go to "/" and then to "/edit/1" and this is what you should see: (IMAGE 054)
 
 Also open "/" in a window and change something and save and see how the list is updated with the new data.
 
+Lets commit this
 
-
+    $git commit -am "added some routes and some views"

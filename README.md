@@ -1820,7 +1820,7 @@ To install these dependencies run:
 Okay we need to edit our "./lib/server/index.js" OBSERVE it's the server part.
 Those are the lines we are going to modify/add:
 
-   , auth = require('derby-auth')
+    , auth = require('derby-auth')
 
     //Authentication
     auth.store(store);

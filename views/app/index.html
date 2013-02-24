@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="/foundation/stylesheets/foundation.min.css">
   <link rel="stylesheet" href="/foundation/stylesheets/app.css">
   <!-- Custom Modernizr for Foundation -->
-  <script src="javascripts/foundation/modernizr.foundation.js"></script>
+  <script src="/foundation/javascripts/modernizr.foundation.js"></script>
   <!-- This is a component defined in the /ui directory -->
   <ui:connectionAlert>
 
@@ -19,9 +19,9 @@
 
   <div class="row">
     {#each _snippets}
-      <div class="four columns">
+      <div class="six columns">
         <div class="panel">
-          <h4><a href="/view/{.id}">Title:{.title}</a></h4>
+          <h4><a href="/view/{.id}">{.title}</a></h4>
           <h5 class="subheader">{.description}</h5>
           <p>
             <code>{.source}</code>

@@ -1,47 +1,91 @@
 <import: src="./view">
 <import: src="./edit">
+<import: src="./new">
+<import: src="./login">
 
 <Title:>
   Snippster
 
 <Header:>
+  <link rel="stylesheet" href="/foundation/stylesheets/foundation.min.css">
+  <link rel="stylesheet" href="/foundation/stylesheets/app.css">
+  <!-- Custom Modernizr for Foundation -->
+  <script src="javascripts/foundation/modernizr.foundation.js"></script>
   <!-- This is a component defined in the /ui directory -->
   <ui:connectionAlert>
 
 <Body:>
+  <app:topbar>
 
-  <div>
-    {#if _loggedIn}
-      <div>Logged In</div>
-      <a href="/logout">Logout</a>
-    {else}
-      <div><a href="/auth/facebook">Login with facebook</a></div>
-      <derby-auth:login />
-      <derby-auth:register />
+  <div class="row">
+    {#each _snippets}
+      <div class="four columns">
+        <div class="panel">
+          <h4><a href="/view/{.id}">Title:{.title}</a></h4>
+          <h5 class="subheader">{.description}</h5>
+          <p>
+            <code>{.source}</code>
+          </p>
+        </div>
+      </div>
     {/}
   </div>
+<Scripts:>
+  <script src="/foundation/javascripts/jquery.js"></script>
 
-  <div>
-    <strong>Snippets:</strong>
-  </div>
-  {#each _snippets}
-    <div>
-      <div><a href="/view/{.id}">Title:{.title}</a></div>
-      <div>Description:</div>
-      <div>{.description}</div>
-      <div>source:</div>
-      <div>{.source}</div>
-    </div>
-  {/}
+  <!-- Included JS Files (Unminified) -->
+  <!-- [JS Files] -->
+  <!-- We include all the unminified JS as well. Uncomment to use them instead -->
 
-  New Snippet:
-  <form x-bind="submit: saveSnippet">
-    Title:<br>
-    <input value={_snippet.title}><br>
-    Description:<br>
-    <input value={_snippet.description}><br>
-    Source:<br>
-    <input value={_snippet.source}><br>
-    <input id=add-button type=submit value=Save>
-  </form>
+  <!-- Included JS Files (Minified) -->
+  <script src="/foundation/javascripts/foundation.min.js"></script>
 
+  <!-- Initialize JS Plugins -->
+  <script src="/foundation/javascripts/app.js"></script>
+</Scripts:>
+
+<topbar:>
+  <!-- Top Bar -->
+
+  <nav class="top-bar">
+    <ul>
+      <!-- Title Area -->
+      <li class="name">
+        <h1>
+          <a href="/">
+            Snippster.io
+          </a>
+        </h1>
+      </li>
+      <li class="toggle-topbar"><a href="#"></a></li>
+    </ul>
+
+    <section>
+
+      <ul class="left">
+        <li class="divider"></li>
+          <li><a href="/new">New snippet</a></li>
+      </ul>
+
+      <!-- Right Nav Section -->
+      <ul class="right">
+        <li class="divider"></li>
+        <li class="has-dropdown">
+          <a href="#">Menu</a>
+          <ul class="dropdown">
+            {#if _loggedIn}
+            <li><a href="/logout">Logout</a></li>
+            {else}
+            <li><a href="/auth/facebook">Sign in with facebook</a></li>
+            <li class="divider"></li>
+            <li><a href="/login">Register</a></li>
+            <li><a href="/login">Login</a></li>
+            {/}
+          </ul>
+        </li>
+      </ul>
+    </section>
+  </nav>
+
+  <!-- End Top Bar -->
+</topbar:>

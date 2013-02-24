@@ -1,11 +1,14 @@
 <Body:>
-  <strong>Snippet:</strong>
-  <div>
-    <div>Title:{_snippet.title}</div>
-    <div>Description:</div>
-    <div>{_snippet.description}</div>
-    <div>source:</div>
-    <div>{_snippet.source}</div>
-  </div>
-  <a href="/">Home</a><br>
-  <a href="/edit/{_snippet.id}">Edit</a>
+  <app:topbar>
+
+    <div class="row">
+
+      <div class="nine columns" role="content">
+        <h1>{_snippet.title}</h1>
+        <h2 class="subheader">{_snippet.description}</h2>
+        <p>
+          <code>{_snippet.source}</code>
+        </p>
+        <a href="/edit/{_snippet.id}" class="radius button">Edit</a>
+      </div>
+    </div>

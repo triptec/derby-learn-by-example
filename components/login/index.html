@@ -1,0 +1,32 @@
+<login:>
+    {#with :self}
+        <form id="derby-auth-login" action='/login' method='post'>
+            <div class="row collapse">
+                <div class="two columns"><label class="inline">Username:</label></div>
+                <div class="ten columns"><input type="text" class="{#if .errors.username}error{/}" id="username" name="username" placeholder="John" x-bind="blur:usernameBlur" value="{.username}" /></div>
+                <div class="help-inline">{.errors.username}</div>
+            </div>
+
+
+              <div class="row collapse">
+                <div class="two columns"><label class="inline">Password:</label></div>
+                <div class="ten columns"><input type="password" class="{#if .errors.password}error{/}" id="password" name="password" placeholder="Password" value="{.password}" /></div>
+                <div class="help-inline">{.errors.password}</div>
+              </div>
+              <button type="submit" class="radius button">Login</button>
+        </form>
+    {/}
+
+<reset:>
+    <form id="derby-auth-password-reset" x-bind="submit:submitPasswordReset" method='post' class='well'>
+        <h3>Email New Password</h3>
+
+        <div class="alert alert-success">{.success.passwordReset}</div>
+      <div class="row collapse">
+            <div class="two columns"><label class="inline">Email:</label></div>
+            <div class="ten columns"><input type='text' class="{#if .errors.passwordReset}error{/}" id="email" name="email" placeholder="Email" value="{.passwordResetEmail}"/></div>
+            <div class="help-inline">{.errors.passwordReset}</div>
+        </div>
+
+        <button type="submit" class="radius button">Reset Password</button>
+    </form>

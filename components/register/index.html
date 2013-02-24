@@ -1,0 +1,35 @@
+<register:>
+    {#with :self}
+        <form id="derby-auth-register" action='/register' method='post'>
+
+          <div class="row collapse">
+              <div class="two columns"><label class="inline">Username:</label></div>
+              <div class="ten columns"><input type="text" class="{#if .errors.username}error{/}" id="username" name="username" placeholder="John" x-bind="blur:usernameBlur" value="{.username}" /></div>
+              <div class="help-inline">{.errors.username}</div>
+          </div>
+
+          <div class="row collapse">
+              <div class="two columns"><label class="inline">Email:</label></div>
+              <div class="ten columns"><input type="text" class="{#if .errors.email}error{/}" id="email" name="email" placeholder="john@doe.com" x-bind="blur:emailBlur" value="{.email}" /></div>
+              <div class="help-inline">{.errors.email}</div>
+          </div>
+
+          <div class="row collapse">
+              <div class="two columns"><label class="inline">Password:</label></div>
+              <div class="ten columns"><input type="password" class="{#if .errors.password}error{/}" id="password" name="password" placeholder="" value="{.password}" /></div>
+              <div class="help-inline">{.errors.password}</div>
+          </div>
+
+          <div class="row collapse">
+              <div class="two columns"><label class="inline">Password Confirmation:</label></div>
+              <div class="ten columns"><input type="password" class="{#if .errors.passwordConfirmation}error{/}" id="password-confirmation" name="password-confirmation" placeholder="" value="{.passwordConfirmation}" /></div>
+              <div class="help-inline">{.errors.passwordConfirmation}</div>
+          </div>
+
+            {#if .canSubmit}
+                <input type="submit" value="Register" class="radius button"/>
+            {else}
+                <input type="submit" value="Register" class="radius button disabled" disabled/>
+            {/}
+        </form>
+    {/}

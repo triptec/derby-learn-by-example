@@ -3,6 +3,16 @@ Derby: Learn by example
 
 Now first things first, get this (http://open.spotify.com/album/37PmPATTGfiCR5TjAbBzS1) album playing on your soundsystem. If you got any good music please send it to me on spotify (http://open.spotify.com/user/sniglekott).
 
+# Overview
+
+1.  [01 - Start](#01---start)
+2.  [02 - Clean out](#02---clean-out)
+3.  [03 - Models](#03---models)
+4.  [04 - DOM event binding](#04---dom-event-binding)
+5.  [05 - Routes](#05---routes)
+6.  [06 - Persistence](#06---persistence)
+7.  [07 - Auth](#07---auth)
+
 01 - Start
 ----------
 Then let's start with opening a terminal and get going with those commands:

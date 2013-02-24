@@ -10,7 +10,20 @@
 
 <Body:>
 
-  <strong>Snippets:</strong>
+  <div>
+    {#if _loggedIn}
+      <div>Logged In</div>
+      <a href="/logout">Logout</a>
+    {else}
+      <div><a href="/auth/facebook">Login with facebook</a></div>
+      <derby-auth:login />
+      <derby-auth:register />
+    {/}
+  </div>
+
+  <div>
+    <strong>Snippets:</strong>
+  </div>
   {#each _snippets}
     <div>
       <div><a href="/view/{.id}">Title:{.title}</a></div>

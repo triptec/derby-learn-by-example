@@ -1777,3 +1777,352 @@ Lets commit and merge
     $git commit -am "added persistence"
     $git checkout mater
     $git merge 06-persistence
+
+07 - Auth
+---------
+
+First of all, I'm out of my depth here and I've tried to be as restrictive as possible but there's probably security flaws
+around here lurking. But I guess I rather make a app that's not a 100% than not making a app at all.
+Opinions and help are welcome on anything but more so in this section. YOU HAVE BEEN WARNED!
+
+Also from here on I'll be less verbose in code, I'll just show how the code looks after the modifications,
+this tutorial is already over 1700 lines and you guys probably learned you way around by now and we only edit a few files.
+
+Okay lets start with adding derby-auth package to our package.json. I use the github repo:
+
+    {
+      "name": "derby-learn-by-example",
+      "description": "",
+      "version": "0.0.0",
+      "main": "./server.js",
+      "dependencies": {
+        "derby": "*",
+        "derby-auth": "git://github.com/lefnire/derby-auth.git#master",
+        "passport-facebook": "*",
+        "express": "3.0.0beta4",
+        "gzippo": ">=0.1.7",
+        "racer-db-mongo": "*"
+      },
+      "private": true
+    }
+
+So we've added derby-auth and passport-facebook, as you can see I've used the master of
+the derby-auth so this might have changed and broken the tutorial by the time you read it,
+please tell me in that case as I've been working hard to make derby accessible to anyone.
+
+Yeah, derby-auth gives us register, login and stuff that's really neat for a webb app, the passport-facebook
+enable us to login with facebook, also neat as I hate having to register with my email everywhere.
+
+To install these dependencies run:
+
+    $npm install
+
+Okay we need to edit our "./lib/server/index.js" OBSERVE it's the server part.
+Those are the lines we are going to modify/add:
+
+   , auth = require('derby-auth')
+
+    //Authentication
+    auth.store(store);
+
+    var options, strategies;
+    strategies = {
+      facebook: {
+        strategy: require("passport-facebook").Strategy,
+        conf: {
+          clientID: process.env.FACEBOOK_KEY,
+          clientSecret: process.env.FACEBOOK_SECRET
+        }
+      }
+    };
+    options = {
+      domain: process.env.BASE_URL || 'http://localhost:3000'
+    };
+
+    store.readPathAccess('snippster.*', function (pathFragment, accept, onErr) {
+      //var session = this.session;
+      //accept(session.isMember);
+      accept(true);
+    });
+
+    store.writeAccess('*', 'snippster.data.*', function () {
+      var pathFragment = arguments[0], accept = arguments[arguments.length - 2], err = arguments[arguments.length -1];
+      //var allowed = (userId === this.session.userId);
+      //accept(allowed);
+      accept(true);
+    });
+
+    .use(express.bodyParser())
+
+    .use(express.cookieParser())
+    .use(store.sessionMiddleware({
+    secret: process.env.SESSION_SECRET || 'YOUR SECRET HERE'
+    , cookie: {maxAge: ONE_YEAR}
+    }))
+
+    //Auth
+    .use(auth.middleware(strategies, options))
+
+1. First off we require derby-auth
+
+2. Next we let auth setup the store for us, it essentially setup access control for the "users" path in the db/models
+
+3. Setup strategies and options for facebook to feed the auth.middleware at the end of this file. The process.env.* variables are
+    the ENV variables in the environment you run the server. Later we are going to start the server with `$FACEBOOK_KEY='<your facebook app key>' FACEBOOK_SECRET='<your facebook app secret>' node server.js `
+    and those varables gets read that way.
+
+4. Setup our own access control, we'd like to readPathAccess "snippster.*" and now it's setup to accept all reads but later on
+    we might change this. Then we setup the writeAccess for all (set,del,push etc) on "snippster.*". The strange line n the beginning
+    of the callback is because this callback gets an variable number of arguments but path is always first and accept and err are
+    always the last ones if I get other peoples comments.
+
+5. Tell derby to use the bodyParser() this is to read post data (I think, can't register without it at least.)
+
+6. auth needs sessions and cookies
+
+7. At last tell derby to use auth and give auth the strategies and options.
+
+Now the file should look like this:
+
+    var http = require('http')
+      , path = require('path')
+      , express = require('express')
+      , gzippo = require('gzippo')
+      , derby = require('derby')
+      , auth = require('derby-auth')
+      , app = require('../app')
+      , serverError = require('./serverError')
+
+
+    // SERVER CONFIGURATION //
+
+    var expressApp = express()
+      , server = module.exports = http.createServer(expressApp)
+
+    derby.use(derby.logPlugin)
+    derby.use(require('racer-db-mongo')); // This line is new
+
+    var store = derby.createStore({
+      listen: server,
+      db:      {type: 'Mongo', uri: 'mongodb://localhost/snippets'}
+    })
+
+    //Authentication
+    auth.store(store);
+
+    var options, strategies;
+    strategies = {
+      facebook: {
+        strategy: require("passport-facebook").Strategy,
+        conf: {
+          clientID: process.env.FACEBOOK_KEY,
+          clientSecret: process.env.FACEBOOK_SECRET
+        }
+      }
+    };
+    options = {
+      domain: process.env.BASE_URL || 'http://localhost:3000'
+    };
+
+    store.readPathAccess('snippster.*', function (pathFragment, accept, onErr) {
+      //var session = this.session;
+      //accept(session.isMember);
+      accept(true);
+    });
+
+    store.writeAccess('*', 'snippster.data.*', function () {
+      var pathFragment = arguments[0], accept = arguments[arguments.length - 2], err = arguments[arguments.length -1];
+      //var allowed = (userId === this.session.userId);
+      //accept(allowed);
+      accept(true);
+    });
+
+    var ONE_YEAR = 1000 * 60 * 60 * 24 * 365
+      , root = path.dirname(path.dirname(__dirname))
+      , publicPath = path.join(root, 'public')
+
+    expressApp
+      .use(express.favicon())
+      // Gzip static files and serve from memory
+      .use(gzippo.staticGzip(publicPath, {maxAge: ONE_YEAR}))
+      // Gzip dynamically rendered content
+      .use(express.compress())
+
+      // Uncomment to add form data parsing support
+      .use(express.bodyParser())
+      // .use(express.methodOverride())
+
+      // Uncomment and supply secret to add Derby session handling
+      // Derby session middleware creates req.model and subscribes to _session
+      .use(express.cookieParser())
+      .use(store.sessionMiddleware({
+        secret: process.env.SESSION_SECRET || 'YOUR SECRET HERE'
+      , cookie: {maxAge: ONE_YEAR}
+      }))
+
+      // Adds req.getModel method
+      .use(store.modelMiddleware())
+      // Creates an express middleware from the app's routes
+
+      //Auth
+      .use(auth.middleware(strategies, options))
+
+      .use(app.router())
+      .use(expressApp.router)
+      .use(serverError(root))
+
+
+    // SERVER ONLY ROUTES //
+
+    expressApp.all('*', function(req) {
+      throw '404: ' + req.url
+    })
+
+
+In "./lib/app/index.js" we add, this will give us components to use in our views, like login form and register form.
+
+    derby.use(require('derby-auth/components'));
+
+And we add error check in our model.subscribe functions, this makes it easier to debug if you get your access control wrong.
+
+    if(err)
+        throw err;
+
+So it now looks like this:
+
+    var derby = require('derby')
+      , app = derby.createApp(module)
+      , get = app.get
+      , view = app.view
+      , ready = app.ready
+      , start = +new Date()
+
+    derby.use(require('../../ui'))
+    derby.use(require('derby-auth/components'));
+
+    // ROUTES //
+
+    get('/', function(page, model, params) {
+
+        model.subscribe('snippster.data', function(err, data){
+
+            model.set('_snippet',{
+                            title: "title",
+                            description: "description",
+                            source: "source"
+                        });
+
+            model.ref('_snippets', data.path() +".snippets");
+            page.render();
+        });
+
+    });
+
+    get('/view/:snippetId([0-9]+)', function(page, model, params){
+        model.subscribe('snippster.data.snippets', function(err, data){
+            if(err)
+                throw err;
+            model.ref('_snippet', data.at(params.snippetId));
+            if(!model.get('_snippet'))
+                throw '404: ' + params.url
+            page.render('view');
+        });
+    });
+
+    get('/edit/:snippetId([0-9]+)', function(page, model, params){
+        model.subscribe('snippster.data.snippets', function(err, data){
+            if(err)
+                throw err;
+            model.set('_snippet', model.get(data.path() + "." + params.snippetId));
+            if(!model.get(data.path()))
+                throw '404: ' + params.url
+            page.render('edit');
+        });
+    });
+
+    ready(function(model) {
+        this.saveSnippet = function(e, el, next){
+            snippet = model.get('_snippet');
+            if(snippet.title && snippet.description && snippet.source){
+                if(snippet.id == undefined){
+                    snippets = model.get('snippster.data.snippets');
+                    if(snippets)
+                        snippet.id = snippets.length;
+                    else
+                        snippet.id = 0;
+
+                    model.push('snippster.data.snippets', snippet);
+                }else{
+                    //Works
+                    model.set('snippster.data.snippets.'+ snippet.id +'.title', snippet.title);
+                    model.set('snippster.data.snippets.'+ snippet.id +'.description', snippet.description);
+                    model.set('snippster.data.snippets.'+ snippet.id +'.source', snippet.source);
+                    model.set('snippster.data.snippets.'+ snippet.id +'.id', snippet.id);
+
+                    //Doesn't work (Well it set the model but lists adds another item and on refresh shows everything right
+                    //model.set('snippster.data.snippets.' + snippet.id, snippet);
+                }
+                app.history.push('/');
+            }
+        };
+    });
+
+And lastly lets add login form, register form and a link to login with facebook to "./views/app/index.html", this is how it's supposed to look:
+
+    <import: src="./view">
+    <import: src="./edit">
+
+    <Title:>
+      Snippster
+
+    <Header:>
+      <!-- This is a component defined in the /ui directory -->
+      <ui:connectionAlert>
+
+    <Body:>
+
+      <div>
+        {#if _loggedIn}
+          <div>Logged In</div>
+          <a href="/logout">Logout</a>
+        {else}
+          <div><a href="/auth/facebook">Login with facebook</a></div>
+          <derby-auth:login />
+          <derby-auth:register />
+        {/}
+      </div>
+
+      <div>
+        <strong>Snippets:</strong>
+      </div>
+      {#each _snippets}
+        <div>
+          <div><a href="/view/{.id}">Title:{.title}</a></div>
+          <div>Description:</div>
+          <div>{.description}</div>
+          <div>source:</div>
+          <div>{.source}</div>
+        </div>
+      {/}
+
+      New Snippet:
+      <form x-bind="submit: saveSnippet">
+        Title:<br>
+        <input value={_snippet.title}><br>
+        Description:<br>
+        <input value={_snippet.description}><br>
+        Source:<br>
+        <input value={_snippet.source}><br>
+        <input id=add-button type=submit value=Save>
+      </form>
+
+That should do it, save and setup a facebook app at "http://developers.facebook.com" if you don't have one and start the server like so:
+
+    $FACEBOOK_KEY='<your facebook app key>' FACEBOOK_SECRET='<your facebook app secret>' node server.js
+
+Try out the new functions and then we commit, merge.
+
+    $git commit -am "added derby-auth and access control"
+    $git checkout master
+    $git merge 07-derby-auth
+

@@ -5,6 +5,8 @@
   "main": "./server.js",
   "dependencies": {
     "derby": "*",
+    "derby-auth": "git://github.com/lefnire/derby-auth.git#master",
+    "passport-facebook": "*",
     "express": "3.0.0beta4",
     "gzippo": ">=0.1.7",
     "racer-db-mongo": "*"

@@ -12,6 +12,7 @@ Now first things first, get this (http://open.spotify.com/album/37PmPATTGfiCR5Tj
 5.  [05 - Routes](#05---routes)
 6.  [06 - Persistence](#06---persistence)
 7.  [07 - Auth](#07---auth)
+8.  [08 - Static](#08---static)
 
 01 - Start
 ----------
@@ -2135,4 +2136,90 @@ Try out the new functions and then we commit, merge.
     $git commit -am "added derby-auth and access control"
     $git checkout master
     $git merge 07-derby-auth
+
+08 - Static
+-----------
+
+This section isn't very good written, I let my curiosity get the better of me and just hacked away, though this is a draft it's still bad. Sorry.
+
+In this section we are going to:
+
+1. Add a css/js framework called foundation.
+2. Create our own components
+3. Add more routes
+4. ..
+
+Okay, so first things first. Lets branch
+
+    $git checkout -b 08-static
+
+Okay so now head on over to http://foundation.zurb.com/download.php and download the "Defaut CSS" this package has all the css and js and unpack it in your "./public" so now there should be a structure like:
+
+"./public/foundation/javascripts/"
+
+"./public/foundation/stylesheets/"
+
+"./public/foundation/images/"
+
+I deleted the other files (humans.txt, index.html, robots.txt)
+
+Okay, that's done, now this might not be the best. Open the file "./styles/app/index.styl" and comment out the import, it should look like this:
+
+    //@import "../base";
+
+Next thing is to include the css and js in our "./views/app/index.html" like so:
+
+    <Header:>
+      <link rel="stylesheet" href="/foundation/stylesheets/foundation.min.css">
+      <link rel="stylesheet" href="/foundation/stylesheets/app.css">
+      <!-- Custom Modernizr for Foundation -->
+      <script src="/foundation/javascripts/modernizr.foundation.js"></script>
+      <!-- This is a component defined in the /ui directory -->
+      <ui:connectionAlert>
+
+
+
+    <Scripts:>
+      <script src="/foundation/javascripts/jquery.js"></script>
+
+      <!-- Included JS Files (Unminified) -->
+      <!-- [JS Files] -->
+      <!-- We include all the unminified JS as well. Uncomment to use them instead -->
+
+      <!-- Included JS Files (Minified) -->
+      <script src="/foundation/javascripts/foundation.min.js"></script>
+
+      <!-- Initialize JS Plugins -->
+      <script src="/foundation/javascripts/app.js"></script>
+    </Scripts:>
+
+Okay so that's foundation added and included. We'll update the rest of the views later on so bear with me. Lets commit:
+
+    $git add .
+    $git commit -am "Added foundation"
+
+So now lets create our own login, register and reset password components. Or actually they are more or less copied from
+derby-auth and customized. Start with creating the dir "./components" and then the file "./components/index.js". The js file should look like this:
+
+    function components(derby, options) {
+        var config = {
+            ns: 'snippster'
+            , filename: __filename
+            , scripts: {
+                register: require('./register')
+                , login: require('./login')
+                , reset: require('./reset')
+            }
+        }
+        derby.createLibrary(config, options);
+        return this;
+    }
+
+    components.decorate = 'derby';
+    module.exports = components;
+
+Okay, this is pretty strait forward. In the config we define our namespace (ns: 'snippster',), this is what you will be calling within the templates (<snippster:login> for example).
+Define the paths included. Not really sure what components.decorate does!
+
+Okay so now lets create the directory "./components/login" and within create "./components/login/index.html", it should look like this:
 

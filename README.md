@@ -13,6 +13,7 @@ Now first things first, get this (http://open.spotify.com/album/37PmPATTGfiCR5Tj
 6.  [06 - Persistence](#06---persistence)
 7.  [07 - Auth](#07---auth)
 8.  [08 - Static](#08---static)
+9.  [09 - Heroku](#09---heroku)
 
 01 - Start
 ----------

@@ -2839,6 +2839,7 @@ Then we need the other updated views:
 
 Now save commit and start your server and it should look alot better! =)
 
+    $git add .
     $git commit -am "made some components and added some static files"
     $git checkout master
     $git merge 08-static
@@ -2852,4 +2853,181 @@ Okay lets branch.
 
     $git checkout -b 09-heroku
 
+Now with heroku installed in your application root path "./" run:
 
+    $heroku create <myApp>
+
+That should have created a heroku app with the name  <myApp> with the url myapp.herokuapp.com, now we need a mongodb on heroku, so install the mongohq addon with
+
+    $heroku addons:add mongohq:sandbox
+
+Okay now we need to update our package.json to tell heroku what version of node and npm to use here's mine:
+
+    {
+      "name": "derby-learn-by-example",
+      "description": "",
+      "version": "0.0.0",
+      "main": "./server.js",
+      "engines":{
+        "node": "0.8.x",
+        "npm": "1.2.x"
+      },
+      "dependencies": {
+        "derby": "*",
+        "derby-auth": "git://github.com/lefnire/derby-auth.git#master",
+        "validator": "*",
+        "passport-facebook": "*",
+        "express": "3.0.0beta4",
+        "gzippo": ">=0.1.7",
+        "racer-db-mongo": "*"
+      },
+      "private": true
+    }
+
+Now we also need to tell the heroku router where to pass web requests, so we need to create a file called "./Procfile" and it should look like this:
+
+    web: node server.js
+
+also we need to create a file called "./.env" so that we can try the application before we push it with the application "foreman" foreman uses this file to set it's env variables, should look like this:
+
+    FACEBOOK_KEY='<YOUR_FB_KEY>'
+    FACEBOOK_SECRET='<YOUR_FB_SECRET>'
+
+While we're at env variables we need to set those up for heroku as well
+
+    $heroku config:add BASE_URL='http://<myApp>.herokuapp.com'
+    $heroku config:add FACEBOOK_KEY='<YOUR_FB_KEY>'
+    $heroku config:add FACEBOOK_SECRET='<YOUR_FB_SECRET>'
+
+The mongohq addon added a env variable called MONGOHQ_URL, you can see all your heroku env variables if you run:
+
+    $heroku config
+
+Output:
+
+    === myApp Config Vars
+    BASE_URL:        http://myApp.herokuapp.com
+    FACEBOOK_KEY:    <YOUR_FB_KEY>
+    FACEBOOK_SECRET: <YOUR_FB_SECRET>
+    MONGOHQ_URL:     mongodb://heroku:553cd503124837976273b533ede727xx@linus.mongohq.com:100xx/app125216xx
+    PATH:            bin:node_modules/.bin:/usr/local/bin:/usr/bin:/bin
+
+So now we need to add the db url to "./lib/server/index.js" we add:
+
+    var store = derby.createStore({
+      listen: server,
+      db:      {type: 'Mongo', uri: process.env.MONGOHQ_URL || 'mongodb://localhost/snippets'}
+    })
+
+After modification:
+
+    var http = require('http')
+      , path = require('path')
+      , express = require('express')
+      , gzippo = require('gzippo')
+      , derby = require('derby')
+      , auth = require('derby-auth')
+      , app = require('../app')
+      , serverError = require('./serverError')
+
+
+    // SERVER CONFIGURATION //
+
+    var expressApp = express()
+      , server = module.exports = http.createServer(expressApp)
+
+    derby.use(derby.logPlugin)
+    derby.use(require('racer-db-mongo')); // This line is new
+
+    var store = derby.createStore({
+      listen: server,
+      db:      {type: 'Mongo', uri: process.env.MONGOHQ_URL || 'mongodb://localhost/snippets'}
+    })
+
+    //Authentication
+    auth.store(store);
+
+    var options, strategies;
+    strategies = {
+      facebook: {
+        strategy: require("passport-facebook").Strategy,
+        conf: {
+          clientID: process.env.FACEBOOK_KEY,
+          clientSecret: process.env.FACEBOOK_SECRET
+        }
+      }
+    };
+    options = {
+      domain: process.env.BASE_URL || 'http://localhost:3000'
+    };
+
+
+    store.readPathAccess('snippster.*', function (pathFragment, accept, onErr) {
+      //var session = this.session;
+      //accept(session.isMember);
+      accept(true);
+    });
+
+    store.writeAccess('*', 'snippster.*', function () {
+      var pathFragment = arguments[0], accept = arguments[arguments.length - 2], err = arguments[arguments.length -1];
+      //var allowed = (userId === this.session.userId);
+      //accept(allowed);
+      accept(true);
+    });
+
+    var ONE_YEAR = 1000 * 60 * 60 * 24 * 365
+      , root = path.dirname(path.dirname(__dirname))
+      , publicPath = path.join(root, 'public')
+
+    expressApp
+      .use(express.favicon())
+      // Gzip static files and serve from memory
+      .use(gzippo.staticGzip(publicPath, {maxAge: ONE_YEAR}))
+      // Gzip dynamically rendered content
+      .use(express.compress())
+
+      // Uncomment to add form data parsing support
+      .use(express.bodyParser())
+      // .use(express.methodOverride())
+
+      // Uncomment and supply secret to add Derby session handling
+      // Derby session middleware creates req.model and subscribes to _session
+      .use(express.cookieParser())
+      .use(store.sessionMiddleware({
+        secret: process.env.SESSION_SECRET || 'YOUR SECRET HERE'
+      , cookie: {maxAge: ONE_YEAR}
+      }))
+
+      // Adds req.getModel method
+      .use(store.modelMiddleware())
+      // Creates an express middleware from the app's routes
+
+      //Auth
+      .use(auth.middleware(strategies, options))
+
+      .use(app.router())
+      .use(expressApp.router)
+      .use(serverError(root))
+
+
+    // SERVER ONLY ROUTES //
+
+    expressApp.all('*', function(req) {
+      throw '404: ' + req.url
+    })
+
+That should do it, now run:
+
+    $git add .
+    $git commit -am "made changes for heroku"
+    $git push heroku 09-heroku:master
+    $heroku ps:scale web=1
+
+
+The line `$git push heroku 09-heroku:master` tells git to push our 09-heroku to the master branch on heroku, you have to do this as the master branch is the only one deployed on heroku.
+
+Now your app should be running smoothly, remember to change the settings of your facebook app to use the new domain if you want to be able to login using it.
+
+Take a look at the heroku url and then merge
+
+    $git checkout master

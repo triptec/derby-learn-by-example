@@ -2218,8 +2218,629 @@ derby-auth and customized. Start with creating the dir "./components" and then t
     components.decorate = 'derby';
     module.exports = components;
 
-Okay, this is pretty strait forward. In the config we define our namespace (ns: 'snippster',), this is what you will be calling within the templates (<snippster:login> for example).
+Okay, this is pretty strait forward. In the config we define our namespace (ns: 'snippster',), this is what you will be calling within the templates (`<snippster:login>` for example).
 Define the paths included. Not really sure what components.decorate does!
 
 Okay so now lets create the directory "./components/login" and within create "./components/login/index.html", it should look like this:
 
+    <login:>
+        {#with :self}
+            <form id="derby-auth-login" action='/login' method='post'>
+                <div class="row collapse">
+                    <div class="two columns"><label class="inline">Username:</label></div>
+                    <div class="ten columns"><input type="text" class="{#if .errors.username}error{/}" id="username" name="username" placeholder="John" x-bind="blur:usernameBlur" value="{.username}" /></div>
+                    <div class="help-inline">{.errors.username}</div>
+                </div>
+
+
+                  <div class="row collapse">
+                    <div class="two columns"><label class="inline">Password:</label></div>
+                    <div class="ten columns"><input type="password" class="{#if .errors.password}error{/}" id="password" name="password" placeholder="Password" value="{.password}" /></div>
+                    <div class="help-inline">{.errors.password}</div>
+                  </div>
+                  <button type="submit" class="radius button">Login</button>
+            </form>
+        {/}
+
+Not much to discus, {#with var} scopes the block with the variable so for example(from handlebars docs slightly modified):
+
+    {
+      title: "My first post!",
+      author: {
+        firstName: "Charles",
+        lastName: "Jolley"
+      }
+    }
+
+And:
+
+    <div class="entry">
+      <h1>{{title}}</h1>
+
+      {{#with author}}
+      <h2>By {{firstName}} {{lastName}}</h2>
+      {{/}}
+    </div>
+
+Becomes:
+
+    <div class="entry">
+      <h1>My first post!</h1>
+
+      <h2>By Charles Jolley</h2>
+    </div>
+
+Okay so lets get some logic in to thing, create "./components/login/index.js" and fill it with this:
+
+    var utils = require('derby-auth/utils')
+
+    exports.init = function(model) {
+    }
+
+    exports.create = function(model, dom) {
+        // sorry but we need jquery, especially for ajax
+        //TODO: Fix searchPath
+        //if (!window.$) require('../../public/foundation/javascripts/jquery.js');
+    }
+
+    exports.usernameBlur = function(){
+        // check username registered
+        var model = this.model,
+            rootModel = model.parent().parent(),
+            q = rootModel.query('users').withUsername(model.get('username'));
+        rootModel.fetch(q, function(err, users) {
+            try {
+                if (err) throw new Error(err);
+                var userObj = users.at(0).get()
+                if (!userObj) {
+                    throw new Error("Username not registered. Make sure you're using the same capitalization you used to register!");
+                } else {
+                    model.set('errors.username', '');
+                }
+            } catch (err) {
+                model.set('errors.username', err.message);
+            }
+        });
+    }
+
+    exports.loginSubmit = function(e, el){
+        // TODO handle server-side login failure response message here, via model.set('errors.password',..)
+    }
+
+There's really only one function here and that's exports.usernameBlur() that's called when the username field fires the event blur, it queries the users model and tells us that
+the username isn't registered if it can't find it. Else it sets errors.username to ''
+
+Next we create the directory "./components/register" and create the file "./components/register/index.html" and fill it with this:
+
+    <register:>
+        {#with :self}
+            <form id="derby-auth-register" action='/register' method='post'>
+
+              <div class="row collapse">
+                  <div class="two columns"><label class="inline">Username:</label></div>
+                  <div class="ten columns"><input type="text" class="{#if .errors.username}error{/}" id="username" name="username" placeholder="John" x-bind="blur:usernameBlur" value="{.username}" /></div>
+                  <div class="help-inline">{.errors.username}</div>
+              </div>
+
+              <div class="row collapse">
+                  <div class="two columns"><label class="inline">Email:</label></div>
+                  <div class="ten columns"><input type="text" class="{#if .errors.email}error{/}" id="email" name="email" placeholder="john@doe.com" x-bind="blur:emailBlur" value="{.email}" /></div>
+                  <div class="help-inline">{.errors.email}</div>
+              </div>
+
+              <div class="row collapse">
+                  <div class="two columns"><label class="inline">Password:</label></div>
+                  <div class="ten columns"><input type="password" class="{#if .errors.password}error{/}" id="password" name="password" placeholder="" value="{.password}" /></div>
+                  <div class="help-inline">{.errors.password}</div>
+              </div>
+
+              <div class="row collapse">
+                  <div class="two columns"><label class="inline">Password Confirmation:</label></div>
+                  <div class="ten columns"><input type="password" class="{#if .errors.passwordConfirmation}error{/}" id="password-confirmation" name="password-confirmation" placeholder="" value="{.passwordConfirmation}" /></div>
+                  <div class="help-inline">{.errors.passwordConfirmation}</div>
+              </div>
+
+                {#if .canSubmit}
+                    <input type="submit" value="Register" class="radius button"/>
+                {else}
+                    <input type="submit" value="Register" class="radius button disabled" disabled/>
+                {/}
+            </form>
+        {/}
+
+Next create "./components/register/index.js", it should look like this:
+
+    var validator = require('../../node_modules/validator/validator-min'),
+        check = validator.check,
+        sanitize = validator.sanitize,
+        utils = require('derby-auth/utils')
+
+    exports.init = function(model) {
+    }
+
+    exports.create = function(model, dom) {
+        model.on('set', 'username', function(username){
+            if (!username) return
+            try {
+                check(username).isAlphanumeric();
+                model.set('errors.username', '');
+            } catch (err) {
+                model.set('errors.username', err.message);
+            }
+        });
+
+        model.on('set', 'email', function(email){
+            console.log(email);
+            if (!email) return
+            try {
+                check(email).isEmail();
+                model.set('errors.email', '');
+            } catch (err) {
+                model.set('errors.email', err.message);
+            }
+        });
+
+        model.on('set', 'passwordConfirmation', function(passwordConfirmation){
+            if (!passwordConfirmation) return
+            try {
+                check(passwordConfirmation).equals(model.get('password'));
+                model.set('errors.passwordConfirmation', '');
+            } catch (err) {
+                model.set('errors.passwordConfirmation', err.message);
+            }
+        });
+
+        model.on('set', 'password', function(password){
+            if (!password) return
+            try {
+                check(password).len(6);
+                model.set('errors.password', '');
+            } catch (err) {
+                model.set('errors.password', 'Password must be at least 6 characters');
+            }
+        });
+
+        model.on('set', 'errors.*', function(error){
+            var m = model.get(),
+                canSubmit = false;
+            if (!m.errors.username && !m.errors.email && !m.errors.passwordConfirmation && !m.errors.password &&
+                !!m.username && !!m.email && !!m.passwordConfirmation && !!m.password) {
+                canSubmit = true;
+            }
+            model.set('canSubmit', canSubmit);
+        })
+    }
+
+    exports.usernameBlur = function(){
+        // check username not already registered
+        var model = this.model,
+            rootModel = model.parent().parent(),
+            q = rootModel.query('users').withUsername(model.get('username'));
+        rootModel.fetch(q, function(err, users) {
+            try {
+                if (err) throw new Error(err);
+                var userObj = users.at(0).get()
+                if (userObj) throw new Error('Username already taken');
+            } catch (err) {
+                model.set('errors.username', err.message);
+            }
+        });
+    }
+
+    exports.emailBlur = function(){
+        // check email not already registered
+        var model = this.model,
+            rootModel = model.parent().parent(),
+            q = rootModel.query('users').withEmail(model.get('email'));
+        rootModel.fetch(q, function(err, users) {
+            try {
+                if (err) throw new Error(err);
+                var userObj = users.at(0).get()
+                if (userObj) throw new Error('Email already taken');
+            } catch (err) {
+                model.set('errors.email', err.message);
+            }
+        });
+    }
+
+As you see we use a module called "validator" lets add it to our "./package.json". Here's the definitions:
+
+    {
+      "name": "derby-learn-by-example",
+      "description": "",
+      "version": "0.0.0",
+      "main": "./server.js",
+      "dependencies": {
+        "derby": "*",
+        "derby-auth": "git://github.com/lefnire/derby-auth.git#master",
+        "validator": "*",
+        "passport-facebook": "*",
+        "express": "3.0.0beta4",
+        "gzippo": ">=0.1.7",
+        "racer-db-mongo": "*"
+      },
+      "private": true
+    }
+
+Run:
+    $npm install
+
+Okay so now we got the validator module, lets go on and make a reset component, create "./components/reset/" directory and then "./components/reset/index.html" fill it with this:
+
+    <reset:>
+      {#with :self}
+        <form id="derby-auth-password-reset" x-bind="submit:submitPasswordReset" method='post' class='well'>
+            <h3>Email New Password</h3>
+
+            <div class="alert alert-success">{.success.passwordReset}</div>
+          <div class="row collapse">
+                <div class="two columns"><label class="inline">Email:</label></div>
+                <div class="ten columns"><input type='text' class="{#if .errors.passwordReset}error{/}" id="emailReset" name="emailReset" placeholder="Email" value="{.passwordResetEmail}"/></div>
+                <div class="help-inline">{.errors.passwordReset}</div>
+            </div>
+
+            <button type="submit" class="radius button">Reset Password</button>
+        </form>
+      {/}
+
+And then create "./components/reset/index.js" and this is what you shall fill it with:
+
+    var utils = require('derby-auth/utils')
+
+    exports.init = function(model) {
+    }
+
+    exports.create = function(model, dom) {
+        if (!window.$) require('../../public/foundation/javascripts/jquery.js');
+    }
+
+    exports.showPasswordReset = function() {
+        $('#derby-auth-password-reset').toggle('fast');
+    }
+
+    exports.submitPasswordReset = function() {
+        // check username registered
+        var model = this.model,
+            rootModel = model.parent().parent(),
+            q = rootModel.query('users').withEmail(model.get('passwordResetEmail'));
+        rootModel.fetch(q, function(err, users) {
+            try {
+                if (err) throw new Error(err);
+                var userObj = users.at(0).get()
+                if (!userObj) {
+                    throw new Error('Email not registered.');
+                } else {
+                    model.set('errors.passwordReset', '');
+                    $.ajax({
+                        type: 'POST',
+                        url: "/password-reset",
+                        data: {
+                            email: model.get('passwordResetEmail')
+                        },
+                        success: function(response){
+                            model.set('success.passwordReset', response);
+                        },
+                        error: function(e) {
+                            console.log(e);
+                            throw e.responseText;
+                        }
+                    })
+
+                }
+            } catch (err) {
+                model.set('errors.passwordReset', err.message);
+            }
+        });
+    }
+
+Okay so that was our components. Lets put them to use, first we need to include them in "./lib/app/index.js", you can see that we changed line #9, so now we require our own instead of derby-auth's components. I also added new routes, /new and /login, the new route is for new snippets and login is for login/regestering/reseting password. Here's the code:
+
+    var derby = require('derby')
+      , app = derby.createApp(module)
+      , get = app.get
+      , view = app.view
+      , ready = app.ready
+      , start = +new Date()
+
+    derby.use(require('../../ui'))
+    derby.use(require('../../components'));
+
+    // ROUTES //
+
+    get('/', function(page, model, params) {
+
+        model.subscribe('snippster.data', function(err, data){
+            if(err)
+                throw err;
+            model.set('_snippet',{
+                            title: "title",
+                            description: "description",
+                            source: "source"
+                        });
+
+            model.ref('_snippets', data.path() +".snippets");
+            page.render();
+        });
+
+    });
+
+    get('/view/:snippetId([0-9]+)', function(page, model, params){
+        model.subscribe('snippster.data.snippets', function(err, data){
+            if(err)
+                throw err;
+            model.ref('_snippet', data.at(params.snippetId));
+            if(!model.get('_snippet'))
+                throw '404: ' + params.url
+            page.render('view');
+        });
+    });
+
+    get('/edit/:snippetId([0-9]+)', function(page, model, params){
+        model.subscribe('snippster.data.snippets', function(err, data){
+            if(err)
+                throw err;
+            model.set('_snippet', model.get(data.path() + "." + params.snippetId));
+            if(!model.get(data.path()))
+                throw '404: ' + params.url
+            page.render('edit');
+        });
+    });
+
+    get('/new', function(page, model, params){
+        model.set('_snippet',{
+                        title: "",
+                        description: "",
+                        source: ""
+                    });
+
+        page.render('new');
+    });
+
+    get('/login', function(page, model, params){
+        page.render('login');
+    });
+
+    ready(function(model) {
+        this.saveSnippet = function(e, el, next){
+            snippet = model.get('_snippet');
+            if(snippet.title && snippet.description && snippet.source){
+                if(snippet.id == undefined){
+                    snippets = model.get('snippster.data.snippets');
+                    if(snippets)
+                        snippet.id = snippets.length;
+                    else
+                        snippet.id = 0;
+
+                    model.push('snippster.data.snippets', snippet);
+                }else{
+                    //Works
+                    model.set('snippster.data.snippets.'+ snippet.id +'.title', snippet.title);
+                    model.set('snippster.data.snippets.'+ snippet.id +'.description', snippet.description);
+                    model.set('snippster.data.snippets.'+ snippet.id +'.source', snippet.source);
+                    model.set('snippster.data.snippets.'+ snippet.id +'.id', snippet.id);
+
+                    //Doesn't work (Well it set the model but lists adds another item and on refresh shows everything right
+                    //model.set('snippster.data.snippets.' + snippet.id, snippet);
+                }
+                app.history.push('/');
+            }
+        };
+    });
+
+Now we need to use the components and new routes in the templates, lets start with the new view "new" create "./views/app/new.html" fill it with this:
+
+    <Body:>
+      <app:topbar>
+
+        <div class="row">
+
+          <div class="nine columns" role="content">
+            <fieldset>
+              <legend>New Snippet</legend>
+
+              <form id=snippet x-bind="submit: saveSnippet">
+                <label>Title</label>
+                <input type=text placeholder="Title" value={_snippet.title}>
+                <label>Description</label>
+                <textarea placeholder="Description of the snippet..">
+                  {_snippet.description}
+                </textarea>
+
+                <label>Source</label>
+                <textarea placeholder="Snippet..">
+                  {_snippet.source}
+                </textarea>
+                <button class="radius button" id=add-button type=submit>Save</button>
+              </form>
+
+            </fieldset>
+          </div>
+        </div>
+
+You can see the `<app:topbar>`, this is a component we define in "./views/app/index.html" and this is how it looks:
+
+    <import: src="./view">
+    <import: src="./edit">
+    <import: src="./new">
+    <import: src="./login">
+
+    <Title:>
+      Snippster
+
+    <Header:>
+      <link rel="stylesheet" href="/foundation/stylesheets/foundation.min.css">
+      <link rel="stylesheet" href="/foundation/stylesheets/app.css">
+      <!-- Custom Modernizr for Foundation -->
+      <script src="/foundation/javascripts/modernizr.foundation.js"></script>
+      <!-- This is a component defined in the /ui directory -->
+      <ui:connectionAlert>
+
+    <Body:>
+      <app:topbar>
+
+      <div class="row">
+        {#each _snippets}
+          <div class="six columns">
+            <div class="panel">
+              <h4><a href="/view/{.id}">{.title}</a></h4>
+              <h5 class="subheader">{.description}</h5>
+              <p>
+                <code>{.source}</code>
+              </p>
+            </div>
+          </div>
+        {/}
+      </div>
+    <Scripts:>
+      <script src="/foundation/javascripts/jquery.js"></script>
+
+      <!-- Included JS Files (Unminified) -->
+      <!-- [JS Files] -->
+      <!-- We include all the unminified JS as well. Uncomment to use them instead -->
+
+      <!-- Included JS Files (Minified) -->
+      <script src="/foundation/javascripts/foundation.min.js"></script>
+
+      <!-- Initialize JS Plugins -->
+      <script src="/foundation/javascripts/app.js"></script>
+    </Scripts:>
+
+    <topbar:>
+      <!-- Top Bar -->
+
+      <nav class="top-bar">
+        <ul>
+          <!-- Title Area -->
+          <li class="name">
+            <h1>
+              <a href="/">
+                Snippster.io
+              </a>
+            </h1>
+          </li>
+          <li class="toggle-topbar"><a href="#"></a></li>
+        </ul>
+
+        <section>
+
+          <ul class="left">
+            <li class="divider"></li>
+              <li><a href="/new">New snippet</a></li>
+          </ul>
+
+          <!-- Right Nav Section -->
+          <ul class="right">
+            <li class="divider"></li>
+            <li class="has-dropdown">
+              <a href="#">Menu</a>
+              <ul class="dropdown">
+                {#if _loggedIn}
+                <li><a href="/logout">Logout</a></li>
+                {else}
+                <li><a href="/auth/facebook">Sign in with facebook</a></li>
+                <li class="divider"></li>
+                <li><a href="/login#registerForm">Register</a></li>
+                <li><a href="/login">Login</a></li>
+                {/}
+              </ul>
+            </li>
+          </ul>
+        </section>
+      </nav>
+
+      <!-- End Top Bar -->
+    </topbar:>
+
+Here you see we've done some changes, mainly we included new and login also you can see the definition of `<topbar:>` that is used when we use the `<app:topbar>` lets create the login view ("./views/app/login.html":
+
+    <Body:>
+      <app:topbar>
+
+      <div class="row">
+
+          <!-- Login -->
+          <div class="nine columns">
+
+            <h3>Hello!</h3>
+            <p>Nunc posuere quam nec lacus vehicula in blandit purus vestibulum. Donec non lorem a magna tincidunt vestibulum. Proin vitae diam nibh. Vivamus euismod, lectus quis vestibulum scelerisque, ante velit posuere elit, eu ultricies velit leo vitae massa.</p>
+
+            <dl class="contained tabs">
+              <dd class="active"><a href="#loginForm">Login</a></dd>
+              <dd><a href="#registerForm">Register</a></dd>
+              <dd><a href="#resetForm">Reset</a></dd>
+            </dl>
+
+            <ul class="tabs-content contained">
+              <li id="loginFormTab" class="active">
+                <snippster:login />
+              </li>
+
+              <li id="registerFormTab">
+                <snippster:register />
+              </li>
+
+              <li id="resetFormTab">
+                <snippster:reset />
+              </li>
+
+            </ul>
+
+          </div>
+
+          <!-- End Contact Details -->
+
+Then we need the other updated views:
+
+"./views/app/view.html":
+
+    <Body:>
+      <app:topbar>
+
+        <div class="row">
+
+          <div class="nine columns" role="content">
+            <h1>{_snippet.title}</h1>
+            <h2 class="subheader">{_snippet.description}</h2>
+            <p>
+              <code>{_snippet.source}</code>
+            </p>
+            <a href="/edit/{_snippet.id}" class="radius button">Edit</a>
+          </div>
+        </div>
+
+"./views/app/edit.html":
+
+    <Body:>
+      <app:topbar>
+        <div class="row">
+
+          <div class="nine columns" role="content">
+            <fieldset>
+              <legend>Edit Snippet</legend>
+
+              <form id=snippet x-bind="submit: saveSnippet">
+                <label>Title</label>
+                <input type=text value={_snippet.title}>
+                <label>Description</label>
+                <textarea>
+                  {_snippet.description}
+                </textarea>
+
+                <label>Source</label>
+                <textarea>
+                  {_snippet.source}
+                </textarea>
+                <button class="radius button" id=add-button type=submit>Save</button>
+              </form>
+
+            </fieldset>
+          </div>
+        </div>
+
+Now save commit and start your server and it should look alot better! =)
+
+    $git commit -am "made some components and added some static files"
+    $git checkout master
+    $git merge 08-static
+
+    

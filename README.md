@@ -2843,4 +2843,13 @@ Now save commit and start your server and it should look alot better! =)
     $git checkout master
     $git merge 08-static
 
-    
+09 - Heroku
+-----------
+
+Now, it would be nice to show this app of and why not use heroku, get your account at heroku.com and follow their instructions first. Then get back here and do our necessary changes.
+
+Okay lets branch.
+
+    $git checkout -b 09-heroku
+
+

@@ -13,7 +13,7 @@
     "validator": "*",
     "passport-facebook": "*",
     "express": "3.0.0beta4",
-    "gzippo": "*",
+    "gzippo": ">=0.1.7",
     "racer-db-mongo": "*"
   },
   "private": true

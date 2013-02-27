@@ -3,6 +3,10 @@
   "description": "",
   "version": "0.0.0",
   "main": "./server.js",
+  "engines":{
+    "node": "0.8.x",
+    "npm": "1.2.x"
+  },
   "dependencies": {
     "derby": "*",
     "derby-auth": "git://github.com/lefnire/derby-auth.git#master",

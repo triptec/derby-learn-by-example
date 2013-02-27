@@ -2893,7 +2893,11 @@ also we need to create a file called "./.env" so that we can try the application
     FACEBOOK_KEY='<YOUR_FB_KEY>'
     FACEBOOK_SECRET='<YOUR_FB_SECRET>'
 
-While we're at env variables we need to set those up for heroku as well
+Now you can try this command:
+
+    $foreman start
+
+Now the app should run on http://localhost:5000, moving on, while we're at env variables we need to set those up for heroku as well
 
     $heroku config:add BASE_URL='http://<myApp>.herokuapp.com'
     $heroku config:add FACEBOOK_KEY='<YOUR_FB_KEY>'
@@ -3031,3 +3035,4 @@ Now your app should be running smoothly, remember to change the settings of your
 Take a look at the heroku url and then merge
 
     $git checkout master
+    $git merge 09-heroku
